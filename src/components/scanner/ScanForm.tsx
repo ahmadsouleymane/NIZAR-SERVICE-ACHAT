@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
 import { type ParsedPlanning } from '@/lib/planning/parse'
@@ -20,6 +20,8 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 export function ScanForm() {
   const supabase = createClient()
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
   const [date, setDate] = useState(todayLocalISO())
   const [sourceLabel, setSourceLabel] = useState('')
   const [photos, setPhotos] = useState<File[]>([])
@@ -181,26 +183,50 @@ export function ScanForm() {
         <Input id="sc-source" label="Libellé (ex. Feuille Agadez)" value={sourceLabel} onChange={(e) => setSourceLabel(e.target.value)} />
       </div>
 
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-white p-10 text-center transition-colors hover:border-blue-400 hover:bg-blue-50/40">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-          <UploadIcon size={26} />
-        </span>
-        <span className="text-sm font-semibold text-slate-700">
-          Photographiez la feuille de planning
-        </span>
-        <span className="max-w-xs text-xs text-slate-500">
-          Plusieurs photos possibles (feuille Agadez, feuille Niamey…). Cadrez bien le tableau.
-        </span>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <p className="mb-3 text-sm font-semibold text-slate-700">Ajoutez la photo du planning</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <CameraIcon size={24} />
+            </span>
+            <span className="text-sm font-semibold text-slate-800">Prendre une photo</span>
+            <span className="text-xs text-slate-500">Appareil photo du téléphone</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <UploadIcon size={24} />
+            </span>
+            <span className="text-sm font-semibold text-slate-800">Ajouter une image</span>
+            <span className="text-xs text-slate-500">Depuis les photos du téléphone</span>
+          </button>
+        </div>
         <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
+          className="hidden"
+        />
+        <input
+          ref={galleryRef}
           data-testid="photo-input"
           type="file"
           accept="image/*"
           multiple
-          capture="environment"
           onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
-          className="sr-only"
+          className="hidden"
         />
-      </label>
+      </div>
 
       {photos.length > 0 ? (
         <div className="space-y-2">

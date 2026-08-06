@@ -4,22 +4,31 @@
   --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Palette de marque — Nizar Transport Voyageur (5 cercles du logo)
-   Bleu foncé #0B4C8C · Bleu vif #2EA2DF · Anthracite #454A52
-   Bleu-gris clair #98BBD1 · Cyan #29A5F9 */
+/* Palette de marque — Nizar Transport Voyageur
+   Design System « SaaS Light » (Vercel/Linear) — accent turquoise */
 @theme {
-  --color-blue-50: #eef7fc;
-  --color-blue-100: #d9ecf8;
-  --color-blue-200: #b8dcf2;
-  --color-blue-300: #98bcd4;
-  --color-blue-400: #29a5f9;
-  --color-blue-500: #2ea2df;
-  --color-blue-600: #1474ae;
-  --color-blue-700: #0b4c8c;
-  --color-blue-800: #093b6e;
-  --color-blue-900: #072e57;
-  --color-slate-900: #454a52;
-  --color-slate-800: #3a4048;
+  /* Accent turquoise */
+  --color-blue-50: #f2fafa;
+  --color-blue-100: #e6f5f4;
+  --color-blue-200: #c0e8e6;
+  --color-blue-300: #8fd6d2;
+  --color-blue-400: #45bcb7;
+  --color-blue-500: #0ea5a0;
+  --color-blue-600: #0b8a86;
+  --color-blue-700: #0a7470;
+  --color-blue-800: #0b5c5a;
+  --color-blue-900: #0a4a48;
+  /* Encre et gris */
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f3f4f6;
+  --color-slate-200: #e5e7eb;
+  --color-slate-300: #d1d5db;
+  --color-slate-400: #9ca3af;
+  --color-slate-500: #6b7280;
+  --color-slate-600: #4b5563;
+  --color-slate-700: #374151;
+  --color-slate-800: #1f2937;
+  --color-slate-900: #111827;
 }
 
 body {

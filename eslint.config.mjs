@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Assets du moteur OCR copiés (code tiers) :
     "public/tessdata/**",
+    // Service OCR Python (venv) :
+    "ocr-service/.venv/**",
+    "ocr-service/**/*.py",
   ]),
 ]);
 

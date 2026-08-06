@@ -40,6 +40,11 @@ yarn-error.log*
 # tests navigateur (playwright mcp)
 .playwright-mcp/
 
+# service OCR Python
+ocr-service/.venv/
+__pycache__/
+*.pyc
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
