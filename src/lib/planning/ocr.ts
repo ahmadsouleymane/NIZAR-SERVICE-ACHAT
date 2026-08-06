@@ -36,7 +36,8 @@ export function linesFromTessData(data: unknown): OcrLine[] {
 export async function runOcr(image: File | Blob): Promise<OcrLine[]> {
   const worker = await createWorker('fra')
   try {
-    const { data } = await worker.recognize(image)
+    // tesseract.js v7 : les blocs (coordonnées) ne sont remplis que si demandés
+    const { data } = await worker.recognize(image, {}, { blocks: true, text: true })
     return linesFromTessData(data)
   } finally {
     await worker.terminate()

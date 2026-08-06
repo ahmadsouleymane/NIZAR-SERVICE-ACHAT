@@ -102,4 +102,16 @@ describe('parsePlanning', () => {
     expect(parsed.sections[0].departures).toHaveLength(1)
     expect(parsed.sections[1].departures[0].busNumber).toBe('BM 5852')
   })
+
+  it('ne crée pas de section vide en doublon (titre + en-tête)', () => {
+    const lines = [
+      line(0, 0, [w('PLANNING'), w('DU'), w('VOYAGE'), w('DEPART'), w('AGADEZ')]),
+      line(0, 100, [w('DEPART'), w('AGADEZ')]),
+      line(0, 200, [w('AGADEZ'), w('-'), w('NIAMEY'), w('CG'), w('6377'), w('05'), w('H'), w('00'), w('YOUSSOUF'), w('96474717')]),
+    ]
+    const parsed = parsePlanning(lines)
+    expect(parsed.sections).toHaveLength(1)
+    expect(parsed.sections[0].originCity).toBe('AGADEZ')
+    expect(parsed.sections[0].departures).toHaveLength(1)
+  })
 })

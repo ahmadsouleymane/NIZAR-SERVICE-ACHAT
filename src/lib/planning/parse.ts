@@ -128,8 +128,11 @@ export function parsePlanning(lines: OcrLine[]): ParsedPlanning {
   for (const line of sorted) {
     const header = detectSectionHeader(line)
     if (header) {
-      current = { originCity: header, departures: [] }
-      sections.push(current)
+      // éviter un doublon vide (ex. titre « PLANNING ... DEPART X » puis « DEPART X »)
+      if (!(current && current.originCity === header && current.departures.length === 0)) {
+        current = { originCity: header, departures: [] }
+        sections.push(current)
+      }
       continue
     }
     const row = classifyRow(line)
