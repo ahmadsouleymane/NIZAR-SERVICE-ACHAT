@@ -1,10 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Departure, Fueling, FuelPrice } from '@/lib/types'
 
-type Supabase = {
-  from: (table: string) => any
-}
-
-export async function fetchDeparturesForDate(supabase: Supabase, date: string): Promise<Departure[]> {
+export async function fetchDeparturesForDate(supabase: SupabaseClient, date: string): Promise<Departure[]> {
   const { data } = await supabase
     .from('departures')
     .select('*, plannings!inner(date)')
@@ -13,7 +10,7 @@ export async function fetchDeparturesForDate(supabase: Supabase, date: string): 
   return (data ?? []) as Departure[]
 }
 
-export async function fetchFuelingsForDate(supabase: Supabase, date: string): Promise<Fueling[]> {
+export async function fetchFuelingsForDate(supabase: SupabaseClient, date: string): Promise<Fueling[]> {
   const { data } = await supabase
     .from('fuelings')
     .select('*')
@@ -22,7 +19,7 @@ export async function fetchFuelingsForDate(supabase: Supabase, date: string): Pr
   return (data ?? []) as Fueling[]
 }
 
-export async function fetchFuelPrices(supabase: Supabase): Promise<FuelPrice[]> {
+export async function fetchFuelPrices(supabase: SupabaseClient): Promise<FuelPrice[]> {
   const { data } = await supabase
     .from('fuel_prices')
     .select('*')

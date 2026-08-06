@@ -38,6 +38,8 @@ export function DeparturesScreen() {
   }, [supabase])
 
   useEffect(() => {
+    // chargement des données : setState après await (faux positif de la règle)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load(date)
   }, [date, load])
 

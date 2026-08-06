@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Service d'achat — Gestion des départs et du carburant
 
-## Getting Started
+Application web pour le service d'achat d'une entreprise de transport (Niger).
 
-First, run the development server:
+## Fonctionnalités
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Scanner les plannings de départs (photos) et extraire les données automatiquement (OCR gratuit dans le navigateur, Tesseract.js).
+- Valider et corriger les données avant enregistrement.
+- Consulter les départs d'une date, groupés par ville.
+- Enregistrer les pleins de carburant (essence/diesel) avec prix automatique et montant calculé.
+- Grand total de la journée et suivi payé / non payé.
+- Historique des plannings et des reçus.
+- Multi-utilisateurs (admin / service achat).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js (App Router) + TypeScript + Tailwind, déployé sur Vercel
+- Supabase : base Postgres, authentification, stockage
+- Tesseract.js : OCR 100 % navigateur
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Démarrage
 
-## Learn More
+1. `cp .env.local.example .env.local` puis renseigner les variables Supabase.
+2. Appliquer la migration `supabase/migrations/0001_init.sql` dans le SQL Editor Supabase.
+3. Créer un bucket de stockage public `plannings`.
+4. `npm install`
+5. `npm run dev`
 
-To learn more about Next.js, take a look at the following resources:
+## Déploiement Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Pousser le dépôt sur GitHub et l'importer dans Vercel.
+2. Renseigner les variables d'environnement.
+3. Le premier utilisateur doit être créé directement dans Supabase (Authentication > Users) — son profil `admin` se règle ensuite en base ou via la console.

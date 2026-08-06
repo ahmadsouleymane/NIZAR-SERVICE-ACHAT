@@ -7,7 +7,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-gray-200 bg-white p-4 lg:flex">
-        <div className="mb-6 text-base font-bold text-gray-900">Service d'achat</div>
+        <div className="mb-6 text-base font-bold text-gray-900">Service d&apos;achat</div>
         <div className="flex flex-1 flex-col gap-1">
           <NavLinks profile={profile} />
         </div>
@@ -21,7 +21,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
       <div className="lg:pl-56">
         {/* Barre du haut mobile */}
         <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
-          <span className="text-base font-bold text-gray-900">Service d'achat</span>
+          <span className="text-base font-bold text-gray-900">Service d&apos;achat</span>
           <span className="text-xs text-gray-500">{profile.full_name}</span>
         </header>
 
