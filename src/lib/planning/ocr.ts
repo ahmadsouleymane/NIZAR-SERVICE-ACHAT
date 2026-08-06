@@ -1,5 +1,13 @@
 import { createWorker } from 'tesseract.js'
 import type { OcrLine, OcrToken } from '@/lib/planning/parse'
+import { prepareImage } from '@/lib/planning/preprocess'
+
+// Moteur hébergé localement (aucune dépendance CDN) — fiable même en connexion lente
+const WORKER_CONFIG = {
+  langPath: '/tessdata',
+  workerPath: '/tessdata/worker.min.js',
+  corePath: '/tessdata/core',
+}
 
 export function linesFromTessData(data: unknown): OcrLine[] {
   const lines: OcrLine[] = []
@@ -34,10 +42,11 @@ export function linesFromTessData(data: unknown): OcrLine[] {
 }
 
 export async function runOcr(image: File | Blob): Promise<OcrLine[]> {
-  const worker = await createWorker('fra')
+  const worker = await createWorker('fra', 1, WORKER_CONFIG)
   try {
+    const prepared = await prepareImage(image)
     // tesseract.js v7 : les blocs (coordonnées) ne sont remplis que si demandés
-    const { data } = await worker.recognize(image, {}, { blocks: true, text: true })
+    const { data } = await worker.recognize(prepared, {}, { blocks: true, text: true })
     return linesFromTessData(data)
   } finally {
     await worker.terminate()

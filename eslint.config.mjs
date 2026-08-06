@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Assets du moteur OCR copiés (code tiers) :
+    "public/tessdata/**",
   ]),
 ]);
 

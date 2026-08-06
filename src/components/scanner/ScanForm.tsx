@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { runOcr } from '@/lib/planning/ocr'
+import { rotateImage } from '@/lib/planning/preprocess'
 import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
-import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon } from '@/components/ui/icons'
 import { PreviewTable } from './PreviewTable'
 
 export function ScanForm() {
@@ -26,6 +27,22 @@ export function ScanForm() {
     setDone(false)
     setSuccess(false)
     setError('')
+  }
+
+  async function rotatePhoto(index: number) {
+    setError('')
+    setBusy(true)
+    try {
+      const rotated = await rotateImage(photos[index], 90)
+      const file = new File([rotated], `photo-${index + 1}-tournee.jpg`, { type: 'image/jpeg' })
+      const next = [...photos]
+      next[index] = file
+      setPhotos(next)
+    } catch {
+      setError('Impossible de tourner la photo.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleScan() {
@@ -166,9 +183,24 @@ export function ScanForm() {
       </label>
 
       {photos.length > 0 ? (
-        <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
-          <CameraIcon size={18} className="shrink-0 text-slate-500" />
-          {photos.length} photo{photos.length > 1 ? 's' : ''} sélectionnée{photos.length > 1 ? 's' : ''}
+        <div className="space-y-2">
+          {photos.map((photo, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
+              <span className="flex min-w-0 items-center gap-2">
+                <CameraIcon size={18} className="shrink-0 text-slate-500" />
+                Photo {i + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => rotatePhoto(i)}
+                disabled={busy}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+              >
+                <RotateIcon size={14} />
+                Tourner 90°
+              </button>
+            </div>
+          ))}
         </div>
       ) : null}
 

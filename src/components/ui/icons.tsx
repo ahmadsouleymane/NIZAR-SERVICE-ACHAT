@@ -147,6 +147,13 @@ export const WalletIcon = (p: IconProps) => (
   </Base>
 )
 
+export const RotateIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M3 8a9 9 0 0 1 14.9-4M21 8V3M21 8h-5" />
+    <path d="M21 16a9 9 0 0 1-14.9 4M3 16v5M3 16h5" />
+  </Base>
+)
+
 export const UsersIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
