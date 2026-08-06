@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parsePlanning } from '@/lib/planning/parse'
 
-// Description du template des plannings (voir docs/planning-template.md)
+// Description du template des plannings (voir docs/planning-template.md) — utilisée par Gemini
 const SYSTEM_PROMPT = `Tu es un expert qui lit des plannings de départs de bus au Niger et renvoie les données au format JSON.
 
 Le planning est une grille de 7 colonnes (séparées par des traits verticaux) :
@@ -31,26 +32,54 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'non authentifié' }, { status: 401 })
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: 'Clé Gemini non configurée (GEMINI_API_KEY).' },
-      { status: 500 }
-    )
-  }
-
   const body = await req.json()
   const image = body?.image as string | undefined
   if (!image) {
     return NextResponse.json({ error: 'image manquante' }, { status: 400 })
   }
 
-  // L'image arrive en data URI : "data:image/jpeg;base64,XXXX"
   const m = image.match(/^data:(image\/\w+);base64,(.+)$/)
   if (!m) {
     return NextResponse.json({ error: 'format d’image invalide' }, { status: 400 })
   }
   const [, mimeType, base64] = m
+
+  // 1) Service OCR auto-hébergé (PaddleOCR sur Render) si configuré
+  const ocrUrl = process.env.OCR_SERVICE_URL
+  if (ocrUrl) {
+    try {
+      const buf = Buffer.from(base64, 'base64')
+      const fd = new FormData()
+      fd.append('file', new Blob([buf], { type: mimeType }), 'planning.jpg')
+      const ocrRes = await fetch(`${ocrUrl.replace(/\/$/, '')}/extract`, {
+        method: 'POST',
+        body: fd,
+        signal: AbortSignal.timeout(60000),
+      })
+      if (ocrRes.ok) {
+        const json = (await ocrRes.json()) as { lines?: unknown[] }
+        const parsed = parsePlanning((json.lines ?? []) as Parameters<typeof parsePlanning>[0])
+        if (parsed.sections.length > 0) {
+          return NextResponse.json(parsed)
+        }
+      }
+    } catch {
+      // le service OCR est indisponible → on retombe sur Gemini
+    }
+  }
+
+  // 2) Secours : Google Gemini (vision)
+  return extractWithGemini(mimeType, base64)
+}
+
+async function extractWithGemini(mimeType: string, base64: string) {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: 'Aucun moteur disponible : configurez OCR_SERVICE_URL ou GEMINI_API_KEY.' },
+      { status: 500 }
+    )
+  }
 
   const model = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash'
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
@@ -68,10 +97,7 @@ export async function POST(req: Request) {
           ],
         },
       ],
-      generationConfig: {
-        response_mime_type: 'application/json',
-        max_output_tokens: 4000,
-      },
+      generationConfig: { response_mime_type: 'application/json', max_output_tokens: 4000 },
     }),
   })
 
@@ -93,13 +119,10 @@ export async function POST(req: Request) {
     .join('')
 
   let parsed = extractJson(content ?? '')
-
-  // si illisible, on réessaie une fois (erreur passagère)
   if (!parsed) {
     const retry = await callGemini(url, mimeType, base64)
     parsed = extractJson(retry)
   }
-
   if (!parsed) {
     return NextResponse.json(
       { error: 'Gemini n’a pas pu analyser cette photo. Réessayez avec une meilleure photo (nette, droite, bien éclairée).' },
@@ -107,7 +130,6 @@ export async function POST(req: Request) {
     )
   }
 
-  // normalise les champs « NEANT » → vide et nettoie
   if (parsed && Array.isArray((parsed as { sections?: unknown[] }).sections)) {
     for (const s of (parsed as { sections: { departures?: unknown[] }[] }).sections) {
       for (const d of (s.departures ?? []) as Record<string, unknown>[]) {
@@ -121,7 +143,6 @@ export async function POST(req: Request) {
       }
     }
   }
-
   return NextResponse.json(parsed)
 }
 
@@ -151,14 +172,12 @@ async function callGemini(url: string, mimeType: string, base64: string): Promis
   }
 }
 
-// « NEANT » / « NÉANT » → chaîne vide ; sinon texte nettoyé
 function cleanField(v: unknown): string {
   if (typeof v !== 'string') return ''
   const s = v.trim()
   return /^(NEANT|NÉANT)$/i.test(s) ? '' : s
 }
 
-// Extrait un objet JSON du texte renvoyé par le modèle (tolère fences markdown et texte autour)
 function extractJson(content: string): unknown | null {
   const clean = content.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()
   try {
