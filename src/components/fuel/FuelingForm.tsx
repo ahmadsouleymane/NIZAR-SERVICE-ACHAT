@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { DepartureWithFuel, FuelPrice, FuelType } from '@/lib/types'
 import { computeAmount, formatFcfa, latestPrice, sumAmounts, todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input, Select } from '@/components/ui'
+import { DropletIcon, AlertIcon, BanknotesIcon } from '@/components/ui/icons'
 
 interface Props {
   departure: DepartureWithFuel
@@ -36,6 +37,10 @@ export function FuelingForm({ departure, onSaved }: Props) {
       setError('Saisissez une quantité en litres.')
       return
     }
+    if (unitPrice <= 0) {
+      setError('Aucun prix défini pour ce carburant. Réglez-le dans Admin.')
+      return
+    }
     setBusy(true)
     const { error } = await supabase.from('fuelings').insert({
       date: today,
@@ -56,11 +61,16 @@ export function FuelingForm({ departure, onSaved }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-lg bg-gray-50 p-3 text-sm">
-        <p className="font-bold text-gray-900">{departure.bus_number}</p>
-        <p className="text-gray-600">{departure.axis}</p>
-        <p className="text-gray-500">{departure.driver_name} · {departure.departure_time}</p>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <DropletIcon size={22} />
+        </span>
+        <div className="min-w-0 text-sm">
+          <p className="font-bold text-slate-900">{departure.bus_number}</p>
+          <p className="truncate text-slate-600">{departure.axis}</p>
+          <p className="text-slate-500">{departure.driver_name} · {departure.departure_time}</p>
+        </div>
       </div>
 
       <Select
@@ -86,23 +96,36 @@ export function FuelingForm({ departure, onSaved }: Props) {
         onChange={(e) => setLiters(e.target.value)}
       />
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p className="text-gray-500">Prix du litre</p>
-          <p className="font-semibold text-gray-900">{unitPrice ? formatFcfa(unitPrice) : '—'}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-slate-50 p-3 text-sm">
+          <p className="text-slate-500">Prix du litre</p>
+          <p className="tabular mt-0.5 font-bold text-slate-900">{unitPrice ? formatFcfa(unitPrice) : '—'}</p>
         </div>
-        <div>
-          <p className="text-gray-500">Montant</p>
-          <p data-testid="amount" className="font-bold text-gray-900">{formatFcfa(amount)}</p>
+        <div className="rounded-xl bg-emerald-50 p-3 text-sm">
+          <p className="flex items-center gap-1 text-emerald-700">
+            <BanknotesIcon size={14} />
+            Montant
+          </p>
+          <p data-testid="amount" className="tabular mt-0.5 text-lg font-extrabold text-emerald-700">
+            {formatFcfa(amount)}
+          </p>
         </div>
-      </div>
-      <div className="rounded-lg bg-blue-50 p-3 text-sm">
-        <p className="text-gray-600">Total du départ (avec ce plein)</p>
-        <p className="text-lg font-bold text-blue-900">{formatFcfa(departureTotal)}</p>
       </div>
 
-      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-      <Button type="submit" disabled={busy} className="w-full">
+      <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm">
+        <p className="text-blue-700">Total du départ (avec ce plein)</p>
+        <p className="tabular text-lg font-extrabold text-blue-800">{formatFcfa(departureTotal)}</p>
+      </div>
+
+      {error ? (
+        <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
+          <AlertIcon size={18} className="mt-0.5 shrink-0" />
+          {error}
+        </p>
+      ) : null}
+
+      <Button type="submit" variant="accent" disabled={busy} className="w-full">
+        <DropletIcon size={18} />
         {busy ? 'Enregistrement…' : 'Enregistrer le plein'}
       </Button>
     </form>

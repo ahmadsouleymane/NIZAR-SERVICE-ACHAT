@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { FuelPrice, FuelType } from '@/lib/types'
 import { formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input, Select, Card } from '@/components/ui'
+import { DropletIcon, AlertIcon } from '@/components/ui/icons'
 
 interface Props {
   initialPrices: FuelPrice[]
@@ -60,19 +61,29 @@ export function PricesPanel({ initialPrices }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         <Card>
-          <p className="text-xs text-gray-500">Diesel actuel</p>
-          <p className="text-xl font-bold text-gray-900">{current('diesel') ? formatFcfa(current('diesel')!.price) : '—'}</p>
+          <p className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
+            <DropletIcon size={16} />
+            Diesel actuel
+          </p>
+          <p className="tabular mt-1 text-xl font-extrabold text-slate-900">
+            {current('diesel') ? formatFcfa(current('diesel')!.price) : '—'}
+          </p>
         </Card>
         <Card>
-          <p className="text-xs text-gray-500">Essence actuelle</p>
-          <p className="text-xl font-bold text-gray-900">{current('essence') ? formatFcfa(current('essence')!.price) : '—'}</p>
+          <p className="flex items-center gap-2 text-xs font-semibold text-blue-700">
+            <DropletIcon size={16} />
+            Essence actuelle
+          </p>
+          <p className="tabular mt-1 text-xl font-extrabold text-slate-900">
+            {current('essence') ? formatFcfa(current('essence')!.price) : '—'}
+          </p>
         </Card>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
-        <h3 className="text-base font-bold text-gray-900">Changer un prix</h3>
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="text-base font-bold text-slate-900">Changer un prix</h3>
         <div className="grid gap-3 sm:grid-cols-3">
           <Select
             id="type"
@@ -91,15 +102,20 @@ export function PricesPanel({ initialPrices }: Props) {
             </Button>
           </div>
         </div>
-        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
+            <AlertIcon size={18} className="mt-0.5 shrink-0" />
+            {error}
+          </p>
+        ) : null}
       </form>
 
       <Card title="Historique des prix">
-        <ul className="divide-y divide-gray-100 text-sm">
+        <ul className="divide-y divide-slate-100 text-sm">
           {prices.map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2">
-              <span className="text-gray-700 capitalize">{p.fuel_type} · {p.effective_date}</span>
-              <span className="font-semibold text-gray-900">{formatFcfa(p.price)}</span>
+            <li key={p.id} className="flex items-center justify-between py-2.5">
+              <span className="capitalize text-slate-700">{p.fuel_type} · {p.effective_date}</span>
+              <span className="tabular font-bold text-slate-900">{formatFcfa(p.price)}</span>
             </li>
           ))}
         </ul>

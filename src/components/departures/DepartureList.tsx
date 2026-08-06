@@ -15,8 +15,12 @@ export function DepartureList({ departures, onFuel }: { departures: DepartureWit
     <div className="space-y-6">
       {[...groups.entries()].map(([city, rows]) => (
         <section key={city}>
-          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">{city}</h2>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="mb-2 flex items-center gap-2">
+            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-blue-500" />
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">{city}</h2>
+            <span className="text-xs text-slate-400">· {rows.length} départ{rows.length > 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {rows.map((d) => {
               const total = sumAmounts(d.fuelings)
               const paid = d.fuelings.length > 0 && d.fuelings.every((f) => f.paid)
@@ -26,19 +30,23 @@ export function DepartureList({ departures, onFuel }: { departures: DepartureWit
                   key={d.id}
                   data-testid="departure-row"
                   onClick={() => onFuel?.(d)}
-                  className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 text-left last:border-b-0 hover:bg-gray-50"
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100"
                 >
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900">{d.bus_number}</div>
-                    <div className="truncate text-sm text-gray-600">{d.axis}</div>
-                    <div className="text-xs text-gray-400">
-                      {d.departure_time || '—'} · {d.driver_name || '—'}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {d.fuelings.length > 0 ? <span className="text-sm font-bold text-gray-900">{formatFcfa(total)}</span> : null}
+                  <span className="w-16 shrink-0 rounded-lg bg-slate-100 px-2 py-1.5 text-center text-xs font-bold text-slate-700">
+                    {d.departure_time || '—'}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-slate-900">{d.axis}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {d.bus_number} · {d.driver_name || '—'}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end gap-1">
+                    {d.fuelings.length > 0 ? (
+                      <span className="tabular text-sm font-bold text-slate-900">{formatFcfa(total)}</span>
+                    ) : null}
                     <StatusBadge status={status} />
-                  </div>
+                  </span>
                 </button>
               )
             })}

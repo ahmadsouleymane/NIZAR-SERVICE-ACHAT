@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react'
 import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa } from '@/lib/fuel/calculations'
-import { Select, EmptyState, Card } from '@/components/ui'
+import { Select, EmptyState } from '@/components/ui'
+import { BanknotesIcon, ReceiptIcon, DropletIcon } from '@/components/ui/icons'
 
 type Filter = 'all' | 'paid' | 'unpaid'
 
@@ -33,27 +34,38 @@ export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
             { value: 'unpaid', label: 'Non payés' },
           ]}
         />
-        <Card className="flex-1 min-w-40">
-          <p className="text-xs text-gray-500">Total affiché</p>
-          <p data-testid="receipts-total" className="text-xl font-bold text-gray-900">{formatFcfa(total)}</p>
-        </Card>
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-44">
+          <BanknotesIcon size={18} className="shrink-0 text-emerald-700" />
+          <div>
+            <p className="text-xs font-semibold text-emerald-700">Total affiché</p>
+            <p data-testid="receipts-total" className="tabular text-xl font-extrabold text-emerald-700">
+              {formatFcfa(total)}
+            </p>
+          </div>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState message="Aucun reçu pour ces critères." />
+        <EmptyState icon={<ReceiptIcon size={40} />} message="Aucun reçu pour ces critères." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
           {filtered.map((f) => (
-            <div key={f.id} data-testid="receipt-row" className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 last:border-b-0">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">{f.bus_number}</div>
-                <div className="text-xs text-gray-500">
-                  {f.date} · {typeLabel(f.fuel_type)} · {f.liters} L
+            <div key={f.id} data-testid="receipt-row" className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">{f.bus_number}</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                    <DropletIcon size={12} />
+                    {typeLabel(f.fuel_type)}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs text-slate-500">
+                  {f.date} · {f.liters} L
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-sm font-bold text-gray-900">{formatFcfa(f.amount)}</span>
-                <span className={`text-xs font-semibold ${f.paid ? 'text-green-600' : 'text-amber-600'}`}>
+              <div className="flex shrink-0 flex-col items-end">
+                <span className="tabular text-sm font-bold text-slate-900">{formatFcfa(f.amount)}</span>
+                <span className={`text-xs font-semibold ${f.paid ? 'text-emerald-600' : 'text-amber-600'}`}>
                   {f.paid ? 'Payé' : 'Non payé'}
                 </span>
               </div>

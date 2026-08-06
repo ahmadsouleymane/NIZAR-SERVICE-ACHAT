@@ -29,7 +29,7 @@ describe('LoginForm', () => {
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.c' } })
     fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'x' } })
     fireEvent.click(screen.getByRole('button', { name: /se connecter/i }))
-    await waitFor(() => expect(screen.getByText('Identifiants invalides')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Identifiants invalides/)).toBeInTheDocument())
   })
 
   it('redirige vers la racine après succès', async () => {

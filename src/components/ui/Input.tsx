@@ -6,12 +6,12 @@ interface Props extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, className = '', id, ...rest }: Props) {
   return (
-    <label className="block text-sm text-gray-700" htmlFor={id}>
-      {label ? <span className="mb-1 block font-medium">{label}</span> : null}
+    <label className="block text-sm text-slate-700" htmlFor={id}>
+      {label ? <span className="mb-1.5 block font-medium">{label}</span> : null}
       <input
         data-testid="input"
         id={id}
-        className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none ${className}`}
+        className={`h-11 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none ${className}`}
         {...rest}
       />
     </label>

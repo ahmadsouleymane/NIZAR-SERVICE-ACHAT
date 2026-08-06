@@ -2,11 +2,14 @@
 
 import type { ParsedPlanning } from '@/lib/planning/parse'
 import { Button } from '@/components/ui/Button'
+import { TrashIcon } from '@/components/ui/icons'
 
 interface Props {
   planning: ParsedPlanning
   onChange: (p: ParsedPlanning) => void
 }
+
+const cellClass = 'h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none'
 
 export function PreviewTable({ planning, onChange }: Props) {
   function updateRow(sectionIdx: number, rowIdx: number, field: keyof ParsedPlanning['sections'][number]['departures'][number], value: string) {
@@ -24,46 +27,52 @@ export function PreviewTable({ planning, onChange }: Props) {
   return (
     <div className="space-y-6">
       {planning.sections.map((section, si) => (
-        <div key={si} className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-4 py-2 text-sm font-bold text-gray-700">
-            Départ {section.originCity || '—'}
+        <div key={si} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+            <span className="text-sm font-bold text-slate-700">Départ {section.originCity || '—'}</span>
+            <span className="text-xs text-slate-400">{section.departures.length} ligne{section.departures.length > 1 ? 's' : ''}</span>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
-                <th className="px-3 py-2">Axe</th>
-                <th className="px-3 py-2">N° Bus</th>
-                <th className="px-3 py-2">Heure</th>
-                <th className="px-3 py-2">Chauffeur</th>
-                <th className="px-3 py-2">Téléphone</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {section.departures.map((d, ri) => (
-                <tr key={ri} className="border-b border-gray-100 last:border-b-0">
-                  <td className="px-3 py-1">
-                    <input className="w-full min-w-40 rounded border border-gray-200 px-2 py-1" value={d.axis} onChange={(e) => updateRow(si, ri, 'axis', e.target.value)} />
-                  </td>
-                  <td className="px-3 py-1">
-                    <input className="w-24 rounded border border-gray-200 px-2 py-1" value={d.busNumber} onChange={(e) => updateRow(si, ri, 'busNumber', e.target.value)} />
-                  </td>
-                  <td className="px-3 py-1">
-                    <input className="w-20 rounded border border-gray-200 px-2 py-1" value={d.departureTime} onChange={(e) => updateRow(si, ri, 'departureTime', e.target.value)} />
-                  </td>
-                  <td className="px-3 py-1">
-                    <input className="w-full min-w-36 rounded border border-gray-200 px-2 py-1" value={d.driverName} onChange={(e) => updateRow(si, ri, 'driverName', e.target.value)} />
-                  </td>
-                  <td className="px-3 py-1">
-                    <input className="w-28 rounded border border-gray-200 px-2 py-1" value={d.driverPhone} onChange={(e) => updateRow(si, ri, 'driverPhone', e.target.value)} />
-                  </td>
-                  <td className="px-3 py-1">
-                    <Button variant="ghost" type="button" onClick={() => removeRow(si, ri)}>Supprimer</Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th className="px-3 py-2 font-semibold">Axe</th>
+                  <th className="px-3 py-2 font-semibold">N° Bus</th>
+                  <th className="px-3 py-2 font-semibold">Heure</th>
+                  <th className="px-3 py-2 font-semibold">Chauffeur</th>
+                  <th className="px-3 py-2 font-semibold">Téléphone</th>
+                  <th className="px-3 py-2" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {section.departures.map((d, ri) => (
+                  <tr key={ri} className="border-b border-slate-100 last:border-b-0">
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} min-w-44`} value={d.axis} onChange={(e) => updateRow(si, ri, 'axis', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} w-24`} value={d.busNumber} onChange={(e) => updateRow(si, ri, 'busNumber', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} w-20`} value={d.departureTime} onChange={(e) => updateRow(si, ri, 'departureTime', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} min-w-36`} value={d.driverName} onChange={(e) => updateRow(si, ri, 'driverName', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} w-28`} value={d.driverPhone} onChange={(e) => updateRow(si, ri, 'driverPhone', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <Button variant="ghost" type="button" onClick={() => removeRow(si, ri)} aria-label={`Supprimer la ligne ${ri + 1}`}>
+                        <TrashIcon size={16} />
+                        Supprimer
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>

@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Curseurs : cliquable partout, interdit sur disabled */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+a,
+summary {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Focus visible : accessible, ne jamais le retirer */
+:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect de la préférence de réduction de mouvement */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+::selection {
+  background-color: var(--color-blue-600);
+  color: #ffffff;
+}
+
+/* Aide : les nombres (prix) alignent mieux leur colonne */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

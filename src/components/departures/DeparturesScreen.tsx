@@ -7,8 +7,8 @@ import { fetchDeparturesForDate, fetchFuelingsForDate } from '@/lib/supabase/que
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { DatePicker } from './DatePicker'
 import { DepartureList } from './DepartureList'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Button, Card } from '@/components/ui'
+import { EmptyState, Button } from '@/components/ui'
+import { BanknotesIcon, WalletIcon, CheckCircleIcon, CalendarIcon } from '@/components/ui/icons'
 import { FuelingSheet } from '@/components/fuel/FuelingSheet'
 
 export function DeparturesScreen() {
@@ -47,35 +47,62 @@ export function DeparturesScreen() {
   const pendingCount = fuelings.filter((f) => !f.paid).length
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Départs du jour</h1>
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900">Départs du jour</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Faites le plein des bus avant leur départ</p>
+        </div>
         <DatePicker value={date} onChange={setDate} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Card className="flex-1 min-w-40">
-          <p className="text-xs text-gray-500">Grand total de la journée</p>
-          <p data-testid="grand-total" className="text-xl font-bold text-gray-900">{formatFcfa(grandTotal)}</p>
-        </Card>
-        <Card className="flex-1 min-w-40">
-          <p className="text-xs text-gray-500">Reçus à payer</p>
-          <p data-testid="pending-count" className="text-xl font-bold text-gray-900">{pendingCount}</p>
-        </Card>
-        <Button variant="secondary" disabled={pendingCount === 0} onClick={async () => {
-          const { error } = await supabase
-            .from('fuelings')
-            .update({ paid: true, paid_at: new Date().toISOString() })
-            .eq('date', date)
-            .eq('paid', false)
-          if (!error) load(date)
-        }}>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-center gap-2 text-emerald-700">
+            <BanknotesIcon size={18} />
+            <span className="text-xs font-semibold">Grand total</span>
+          </div>
+          <p data-testid="grand-total" className="tabular mt-1 text-xl font-extrabold text-emerald-700">
+            {formatFcfa(grandTotal)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-center gap-2 text-blue-700">
+            <WalletIcon size={18} />
+            <span className="text-xs font-semibold">Reçus à payer</span>
+          </div>
+          <p data-testid="pending-count" className="tabular mt-1 text-xl font-extrabold text-blue-700">
+            {pendingCount}
+          </p>
+        </div>
+        <Button
+          variant="accent"
+          disabled={pendingCount === 0}
+          className="col-span-2 lg:col-span-1"
+          onClick={async () => {
+            const { error } = await supabase
+              .from('fuelings')
+              .update({ paid: true, paid_at: new Date().toISOString() })
+              .eq('date', date)
+              .eq('paid', false)
+            if (!error) load(date)
+          }}
+        >
+          <CheckCircleIcon size={18} />
           Tout payer
         </Button>
       </div>
 
-      {loading ? <p className="text-sm text-gray-500">Chargement…</p> : departures.length === 0 ? (
-        <EmptyState message="Aucun départ prévu pour cette date." />
+      {loading ? (
+        <div className="space-y-3">
+          <div className="h-24 animate-pulse rounded-2xl bg-slate-200/70" />
+          <div className="h-24 animate-pulse rounded-2xl bg-slate-200/70" />
+        </div>
+      ) : departures.length === 0 ? (
+        <EmptyState
+          icon={<CalendarIcon size={40} />}
+          message={`Aucun départ prévu pour cette date. Scannez le planning dans l'onglet Scanner.`}
+        />
       ) : (
         <DepartureList departures={departures} onFuel={(d) => setSelected(d)} />
       )}
