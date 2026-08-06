@@ -3,26 +3,29 @@
 import { useMemo, useState } from 'react'
 import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa } from '@/lib/fuel/calculations'
-import { Select, EmptyState } from '@/components/ui'
+import { Select, Input, EmptyState } from '@/components/ui'
 import { BanknotesIcon, ReceiptIcon, DropletIcon } from '@/components/ui/icons'
 
 type Filter = 'all' | 'paid' | 'unpaid'
 
 export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
+  const [date, setDate] = useState('')
 
   const filtered = useMemo(() => {
-    if (filter === 'paid') return fuelings.filter((f) => f.paid)
-    if (filter === 'unpaid') return fuelings.filter((f) => !f.paid)
-    return fuelings
-  }, [fuelings, filter])
+    let list = fuelings
+    if (date) list = list.filter((f) => f.date === date)
+    if (filter === 'paid') return list.filter((f) => f.paid)
+    if (filter === 'unpaid') return list.filter((f) => !f.paid)
+    return list
+  }, [fuelings, filter, date])
 
   const total = sumAmounts(filtered)
   const typeLabel = (t: string) => (t === 'diesel' ? 'Diesel' : 'Essence')
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <Select
           id="statut"
           label="Statut"
@@ -34,6 +37,18 @@ export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
             { value: 'unpaid', label: 'Non payés' },
           ]}
         />
+        <div className="w-40">
+          <Input id="rec-date" label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        {date ? (
+          <button
+            type="button"
+            onClick={() => setDate('')}
+            className="h-11 rounded-xl px-3 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Effacer la date
+          </button>
+        ) : null}
         <div className="flex flex-1 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-44">
           <BanknotesIcon size={18} className="shrink-0 text-emerald-700" />
           <div>
