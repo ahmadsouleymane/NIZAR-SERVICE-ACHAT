@@ -1,9 +1,10 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BusIcon, AlertIcon } from '@/components/ui/icons'
+import { AlertIcon } from '@/components/ui/icons'
 import { Button, Input } from '@/components/ui'
 
 export function LoginForm() {
@@ -31,11 +32,15 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="flex flex-col items-center gap-2 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white">
-          <BusIcon size={28} />
-        </span>
-        <h1 className="text-xl font-extrabold text-slate-900">Connexion</h1>
-        <p className="text-sm text-slate-500">Accédez au service d&apos;achat</p>
+        <Image
+          src="/nizar-logo.jpg"
+          alt="Logo Nizar Transport Voyageur"
+          width={72}
+          height={72}
+          className="rounded-2xl"
+        />
+        <h1 className="text-xl font-extrabold text-slate-900">Nizar Transport Voyageur</h1>
+        <p className="text-sm text-slate-500">Service d&apos;achat — Connexion</p>
       </div>
 
       <Input

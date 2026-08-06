@@ -1,16 +1,21 @@
+import Image from 'next/image'
 import type { ReactNode } from 'react'
 import type { Profile } from '@/lib/types'
-import { BusIcon } from '@/components/ui/icons'
 import { NavLinks } from './NavLinks'
 
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
-        <BusIcon size={20} />
-      </span>
+      <Image
+        src="/nizar-logo.jpg"
+        alt="Logo Nizar Transport Voyageur"
+        width={40}
+        height={40}
+        className="rounded-lg"
+      />
       <span className="text-sm font-extrabold leading-tight text-slate-900">
-        Service d&apos;achat
+        Nizar Transport
+        <span className="block text-[11px] font-semibold text-slate-500">Service d&apos;achat</span>
       </span>
     </div>
   )

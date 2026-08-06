@@ -10,8 +10,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Service d'achat — Transport",
-  description: 'Gestion des départs et des pleins de carburant des bus',
+  title: 'Nizar Transport — Service d\'achat',
+  description: 'Gestion des départs et des pleins de carburant des bus — Nizar Transport Voyageur',
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

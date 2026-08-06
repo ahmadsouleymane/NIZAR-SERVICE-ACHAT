@@ -4,6 +4,20 @@
   --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Palette de marque — Nizar Transport Voyageur (bleu ciel #52B0ED + bleu acier) */
+@theme {
+  --color-blue-50: #f0f7fc;
+  --color-blue-100: #ddeef8;
+  --color-blue-200: #bcdef2;
+  --color-blue-300: #93cdea;
+  --color-blue-400: #6bbbe5;
+  --color-blue-500: #52aee0;
+  --color-blue-600: #2271a5;
+  --color-blue-700: #1c5d89;
+  --color-blue-800: #184d73;
+  --color-blue-900: #123d5e;
+}
+
 body {
   background-color: var(--color-slate-50);
   color: var(--color-slate-900);
