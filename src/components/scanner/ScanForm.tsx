@@ -2,13 +2,21 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { runOcr } from '@/lib/planning/ocr'
-import { rotateImage } from '@/lib/planning/preprocess'
-import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
+import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
+import { type ParsedPlanning } from '@/lib/planning/parse'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
 import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon } from '@/components/ui/icons'
 import { PreviewTable } from './PreviewTable'
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('lecture impossible'))
+    reader.readAsDataURL(blob)
+  })
+}
 
 export function ScanForm() {
   const supabase = createClient()
@@ -52,21 +60,33 @@ export function ScanForm() {
       return
     }
     setBusy(true)
-    const lines = []
-    for (const photo of photos) {
-      try {
-        const l = await runOcr(photo)
-        lines.push(...l)
-      } catch {
-        setError('Lecture de la photo impossible. Réessayez avec une meilleure photo.')
-        setBusy(false)
-        return
+    try {
+      let date: string | null = null
+      const sections: ParsedPlanning['sections'] = []
+      for (const photo of photos) {
+        const prepared = await prepareImage(photo)
+        const base64 = await blobToBase64(prepared)
+        const res = await fetch('/api/extract-planning', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64 }),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          setError(json.error ?? 'Erreur lors de la lecture de la photo.')
+          setBusy(false)
+          return
+        }
+        if (json.date) date = json.date
+        sections.push(...(json.sections ?? []))
       }
+      setPreview({ date, sections })
+      setDone(true)
+    } catch {
+      setError('Erreur de connexion au service de lecture. Vérifiez votre connexion internet et réessayez.')
+    } finally {
+      setBusy(false)
     }
-    const parsed = parsePlanning(lines)
-    setPreview(parsed)
-    setBusy(false)
-    setDone(true)
   }
 
   async function handleSave() {
