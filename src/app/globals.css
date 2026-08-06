@@ -4,21 +4,22 @@
   --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Palette de marque — Nizar Transport Voyageur
-   Bleu #52A7CE · Anthracite #2B3035 · Blanc #FFFFFF */
+/* Palette de marque — Nizar Transport Voyageur (5 cercles du logo)
+   Bleu foncé #0B4C8C · Bleu vif #2EA2DF · Anthracite #454A52
+   Bleu-gris clair #98BBD1 · Cyan #29A5F9 */
 @theme {
-  --color-blue-50: #eef7fb;
-  --color-blue-100: #d9eef7;
-  --color-blue-200: #b3ddef;
-  --color-blue-300: #84c6e3;
-  --color-blue-400: #6bb9dc;
-  --color-blue-500: #52a7ce;
-  --color-blue-600: #2a6f96;
-  --color-blue-700: #235c7f;
-  --color-blue-800: #1c4d6b;
-  --color-blue-900: #163e58;
-  --color-slate-900: #2b3035;
-  --color-slate-800: #32383f;
+  --color-blue-50: #eef7fc;
+  --color-blue-100: #d9ecf8;
+  --color-blue-200: #b8dcf2;
+  --color-blue-300: #98bcd4;
+  --color-blue-400: #29a5f9;
+  --color-blue-500: #2ea2df;
+  --color-blue-600: #1474ae;
+  --color-blue-700: #0b4c8c;
+  --color-blue-800: #093b6e;
+  --color-blue-900: #072e57;
+  --color-slate-900: #454a52;
+  --color-slate-800: #3a4048;
 }
 
 body {
