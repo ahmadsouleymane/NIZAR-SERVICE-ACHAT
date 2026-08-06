@@ -86,33 +86,55 @@ alter table public.departures enable row level security;
 alter table public.fuel_prices enable row level security;
 alter table public.fuelings enable row level security;
 
+-- Fonctions utilitaires (lecture de profiles sans RLS, utilisées par les politiques d'écriture)
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
+$$;
+
+create or replace function public.is_agent()
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role in ('admin', 'achat'));
+$$;
+
+-- Lecture pour tous les utilisateurs connectés
 create policy "profiles_read_all" on public.profiles
   for select using (auth.role() = 'authenticated');
-create policy "profiles_update_admin" on public.profiles
-  for update using (auth.uid() in (select id from public.profiles where role = 'admin'));
-
 create policy "plannings_read_all" on public.plannings
   for select using (auth.role() = 'authenticated');
-create policy "plannings_insert_admin" on public.plannings
-  for insert with check (auth.uid() in (select id from public.profiles where role = 'admin'));
-create policy "plannings_delete_admin" on public.plannings
-  for delete using (auth.uid() in (select id from public.profiles where role = 'admin'));
-
 create policy "departures_read_all" on public.departures
   for select using (auth.role() = 'authenticated');
-create policy "departures_insert_admin" on public.departures
-  for insert with check (auth.uid() in (select id from public.profiles where role = 'admin'));
-create policy "departures_delete_admin" on public.departures
-  for delete using (auth.uid() in (select id from public.profiles where role = 'admin'));
-
 create policy "fuel_prices_read_all" on public.fuel_prices
   for select using (auth.role() = 'authenticated');
-create policy "fuel_prices_insert_admin" on public.fuel_prices
-  for insert with check (auth.uid() in (select id from public.profiles where role = 'admin'));
-
 create policy "fuelings_read_all" on public.fuelings
   for select using (auth.role() = 'authenticated');
+
+-- Écriture réservée à l'admin
+create policy "plannings_insert_admin" on public.plannings
+  for insert with check (public.is_admin());
+create policy "plannings_delete_admin" on public.plannings
+  for delete using (public.is_admin());
+create policy "departures_insert_admin" on public.departures
+  for insert with check (public.is_admin());
+create policy "departures_delete_admin" on public.departures
+  for delete using (public.is_admin());
+create policy "fuel_prices_insert_admin" on public.fuel_prices
+  for insert with check (public.is_admin());
+create policy "profiles_update_admin" on public.profiles
+  for update using (public.is_admin()) with check (public.is_admin());
+
+-- Écriture admin + achat
 create policy "fuelings_insert_agents" on public.fuelings
-  for insert with check (auth.uid() in (select id from public.profiles where role in ('admin','achat')));
+  for insert with check (public.is_agent());
 create policy "fuelings_update_agents" on public.fuelings
-  for update using (auth.uid() in (select id from public.profiles where role in ('admin','achat')));
+  for update using (public.is_agent());
+
+-- Stockage : lecture + upload des photos du bucket "plannings"
+create policy "plannings_storage_read" on storage.objects
+  for select using (bucket_id = 'plannings');
+create policy "plannings_storage_insert" on storage.objects
+  for insert with check (bucket_id = 'plannings' and auth.role() = 'authenticated');
+create policy "plannings_storage_update" on storage.objects
+  for update using (bucket_id = 'plannings' and auth.role() = 'authenticated');
