@@ -20,7 +20,9 @@ export function linesFromTessData(data: unknown): OcrLine[] {
         const rawWords = (rawLine as { words?: unknown[] })?.words ?? []
         const tokens: OcrToken[] = []
         for (const rawWord of rawWords) {
-          const text = (rawWord as { text?: string })?.text?.trim() ?? ''
+          // nettoie les traits verticaux du tableau (lus « | ») collés aux textes
+          const raw = (rawWord as { text?: string })?.text ?? ''
+          const text = raw.replace(/[|¦]/g, ' ').replace(/\s+/g, ' ').trim()
           if (!text) continue
           const bbox = (rawWord as { bbox?: { x0?: number; y0?: number; x1?: number; y1?: number } })?.bbox
           tokens.push({

@@ -41,6 +41,8 @@ export function PreviewTable({ planning, onChange }: Props) {
                   <th className="px-3 py-2 font-semibold">Heure</th>
                   <th className="px-3 py-2 font-semibold">Chauffeur</th>
                   <th className="px-3 py-2 font-semibold">Téléphone</th>
+                  <th className="px-3 py-2 font-semibold">Suppléant</th>
+                  <th className="px-3 py-2 font-semibold">Tél. suppl.</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
@@ -61,6 +63,12 @@ export function PreviewTable({ planning, onChange }: Props) {
                     </td>
                     <td className="px-3 py-1.5">
                       <input className={`${cellClass} w-28`} value={d.driverPhone} onChange={(e) => updateRow(si, ri, 'driverPhone', e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} min-w-28`} value={d.backupDriver || '—'} onChange={(e) => updateRow(si, ri, 'backupDriver', e.target.value === '—' ? '' : e.target.value)} />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <input className={`${cellClass} w-28`} value={d.backupPhone || '—'} onChange={(e) => updateRow(si, ri, 'backupPhone', e.target.value === '—' ? '' : e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
                       <Button variant="ghost" type="button" onClick={() => removeRow(si, ri)} aria-label={`Supprimer la ligne ${ri + 1}`}>

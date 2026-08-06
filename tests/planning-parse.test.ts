@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parsePlanning, parseDateFromLines, detectSectionHeader, classifyRow, originOf } from '@/lib/planning/parse'
+import { parsePlanning, parseDateFromLines, detectSectionHeader, classifyRow, originOf, normalizeTime } from '@/lib/planning/parse'
 import type { OcrLine, OcrToken } from '@/lib/planning/parse'
 
 // Helper : construit une ligne depuis des mots espacés sur la même ligne Y
@@ -37,6 +37,10 @@ describe('detectSectionHeader', () => {
   })
   it('ne reconnaît pas une ligne de données', () => {
     expect(detectSectionHeader(line(0, 0, [w('AGADEZ'), w('-'), w('NIAMEY')]))).toBeNull()
+  })
+  it('ignore la ligne d’en-tête « DEPART TITULAIRE SUPPLEAN »', () => {
+    const l = line(0, 0, [w('DEPART'), w('TITULAIRE'), w('SUPPLEAN'), w('TITULAIRE'), w('SUPPLEANT')])
+    expect(detectSectionHeader(l)).toBeNull()
   })
 })
 
@@ -77,6 +81,59 @@ describe('classifyRow', () => {
   it('ignore la ligne d’en-tête du tableau', () => {
     const l = line(0, 0, [w('Axes'), w('N°'), w('Bus'), w('Heure'), w('Chauffeur')])
     expect(classifyRow(l)).toBeNull()
+  })
+
+  it('traite NEANT comme champ vide (suppléant)', () => {
+    const l = line(0, 0, [
+      w('AGADEZ'), w('-'), w('NIAMEY'),
+      w('CG'), w('6377'),
+      w('05'), w('H'), w('00'),
+      w('YOUSSOUF'), w('NEANT'),
+      w('96474717'), w('NEANT'),
+    ])
+    const row = classifyRow(l)
+    expect(row!.driverName).toBe('YOUSSOUF')
+    expect(row!.backupDriver).toBe('')
+    expect(row!.driverPhone).toBe('96474717')
+    expect(row!.backupPhone).toBe('')
+  })
+
+  it('sépare titulaire et suppléant (deux chauffeurs + deux téléphones)', () => {
+    const l = line(0, 0, [
+      w('AGADEZ'), w('-'), w('ARLIT'),
+      w('BM'), w('5840'),
+      w('05'), w('H'), w('00'),
+      w('MOUSSA'), w('HAMIDOU'),
+      w('95163156'), w('97065041'),
+    ])
+    const row = classifyRow(l)
+    expect(row!.driverName).toBe('MOUSSA')
+    expect(row!.backupDriver).toBe('HAMIDOU')
+    expect(row!.driverPhone).toBe('95163156')
+    expect(row!.backupPhone).toBe('97065041')
+  })
+
+  it('gère une heure NUIT', () => {
+    const l = line(0, 0, [
+      w('NUIT'), w('-'), w('GAYA'),
+      w('BH'), w('8210'),
+      w('NUIT'),
+      w('MANSOUR'), w('NEANT'),
+      w('96856627'),
+    ])
+    const row = classifyRow(l)
+    expect(row!.departureTime).toBe('NUIT')
+    expect(row!.driverName).toBe('MANSOUR')
+  })
+})
+
+describe('normalizeTime', () => {
+  it('normalise 05H00 en 05 H 00', () => {
+    expect(normalizeTime('05H00')).toBe('05 H 00')
+    expect(normalizeTime('05 H 00')).toBe('05 H 00')
+  })
+  it('laisse NUIT inchangé', () => {
+    expect(normalizeTime('NUIT')).toBe('NUIT')
   })
 })
 
