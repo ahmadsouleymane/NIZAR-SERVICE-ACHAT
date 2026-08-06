@@ -1,7 +1,7 @@
 // Prétraitement de l'image avant OCR : améliore nettement la précision de Tesseract
 // sur les photos de téléphone (gris, contraste, résolution, redressement).
 
-const MAX_DIM = 2200 // ~300 dpi sur une feuille A4 photographiée
+const MAX_DIM = 1600 // taille raisonnable pour une photo de téléphone (fiable et rapide)
 const CONTRAST = 1.35
 
 function canvasToBlob(canvas: HTMLCanvasElement, quality = 0.92): Promise<Blob> {

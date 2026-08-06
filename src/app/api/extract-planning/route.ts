@@ -81,26 +81,101 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 502 })
   }
 
+  if (data?.promptFeedback?.blockReason) {
+    return NextResponse.json(
+      { error: `Gemini a bloqué cette image (${data.promptFeedback.blockReason}). Réessayez avec une photo plus nette et bien éclairée.` },
+      { status: 422 }
+    )
+  }
+
   const content = data?.candidates?.[0]?.content?.parts
     ?.map((p: { text?: string }) => p.text ?? '')
     .join('')
 
-  const parsed = extractJson(content ?? '')
+  let parsed = extractJson(content ?? '')
+
+  // si illisible, on réessaie une fois (erreur passagère)
   if (!parsed) {
-    return NextResponse.json({ error: 'Réponse illisible du modèle.' }, { status: 502 })
+    const retry = await callGemini(url, mimeType, base64)
+    parsed = extractJson(retry)
   }
+
+  if (!parsed) {
+    return NextResponse.json(
+      { error: 'Gemini n’a pas pu analyser cette photo. Réessayez avec une meilleure photo (nette, droite, bien éclairée).' },
+      { status: 422 }
+    )
+  }
+
+  // normalise les champs « NEANT » → vide et nettoie
+  if (parsed && Array.isArray((parsed as { sections?: unknown[] }).sections)) {
+    for (const s of (parsed as { sections: { departures?: unknown[] }[] }).sections) {
+      for (const d of (s.departures ?? []) as Record<string, unknown>[]) {
+        d.axis = cleanField(d.axis)
+        d.busNumber = cleanField(d.busNumber)
+        d.departureTime = cleanField(d.departureTime)
+        d.driverName = cleanField(d.driverName)
+        d.driverPhone = cleanField(d.driverPhone)
+        d.backupDriver = cleanField(d.backupDriver)
+        d.backupPhone = cleanField(d.backupPhone)
+      }
+    }
+  }
+
   return NextResponse.json(parsed)
 }
 
-// Extrait un objet JSON du texte renvoyé par le modèle (tolère du texte autour)
-function extractJson(content: string): unknown | null {
+async function callGemini(url: string, mimeType: string, base64: string): Promise<string> {
   try {
-    return JSON.parse(content)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { inline_data: { mime_type: mimeType, data: base64 } },
+              { text: 'Renvoie le JSON des départs de ce planning (sections + departures).' },
+            ],
+          },
+        ],
+        generationConfig: { response_mime_type: 'application/json', max_output_tokens: 4000 },
+      }),
+    })
+    const data = await res.json()
+    return data?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text ?? '')
+      .join('') ?? ''
   } catch {
-    const match = content.match(/\{[\s\S]*\}/)
-    if (match) {
+    return ''
+  }
+}
+
+// « NEANT » / « NÉANT » → chaîne vide ; sinon texte nettoyé
+function cleanField(v: unknown): string {
+  if (typeof v !== 'string') return ''
+  const s = v.trim()
+  return /^(NEANT|NÉANT)$/i.test(s) ? '' : s
+}
+
+// Extrait un objet JSON du texte renvoyé par le modèle (tolère fences markdown et texte autour)
+function extractJson(content: string): unknown | null {
+  const clean = content.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()
+  try {
+    return JSON.parse(clean)
+  } catch {
+    const obj = clean.match(/\{[\s\S]*\}/)
+    if (obj) {
       try {
-        return JSON.parse(match[0])
+        return JSON.parse(obj[0])
+      } catch {
+        return null
+      }
+    }
+    const arr = clean.match(/\[[\s\S]*\]/)
+    if (arr) {
+      try {
+        return JSON.parse(arr[0])
       } catch {
         return null
       }
