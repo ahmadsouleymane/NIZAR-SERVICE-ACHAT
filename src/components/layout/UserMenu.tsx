@@ -17,7 +17,11 @@ export function UserMenu({ fullName, role }: { fullName: string; role: string })
   const supabase = createClient()
 
   async function logout() {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // même si le réseau échoue, on redirige quand même
+    }
     router.push('/login')
     router.refresh()
   }

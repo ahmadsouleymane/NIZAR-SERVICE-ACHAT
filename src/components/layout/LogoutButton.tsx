@@ -14,7 +14,11 @@ export function LogoutButton({ className = '' }: { className?: string }) {
       aria-label="Déconnexion"
       title="Déconnexion"
       onClick={async () => {
-        await supabase.auth.signOut()
+        try {
+          await supabase.auth.signOut()
+        } catch {
+          // même si le réseau échoue, on redirige quand même
+        }
         router.push('/login')
         router.refresh()
       }}
