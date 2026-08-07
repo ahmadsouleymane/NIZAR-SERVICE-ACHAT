@@ -1,0 +1,29 @@
+# Configuration Fly.io — service OCR (PaddleOCR)
+# Déploiement : `fly launch` (1re fois), puis `fly deploy` ou push GitHub (workflow auto).
+
+app = "service-achat-ocr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    hard_limit = 1
+    soft_limit = 1
+
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
