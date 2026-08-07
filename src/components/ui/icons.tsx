@@ -154,6 +154,20 @@ export const RotateIcon = (p: IconProps) => (
   </Base>
 )
 
+export const LogoutIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M16 17l5-5-5-5M21 12H9" />
+  </Base>
+)
+
+export const KeyIcon = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="M10.7 12.3 21 2M15 8l3 3" />
+  </Base>
+)
+
 export const UsersIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
