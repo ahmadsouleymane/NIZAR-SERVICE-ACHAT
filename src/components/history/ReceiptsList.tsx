@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import type { Fueling } from '@/lib/types'
-import { sumAmounts, formatFcfa } from '@/lib/fuel/calculations'
+import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { Select, Input, EmptyState } from '@/components/ui'
-import { BanknotesIcon, ReceiptIcon, DropletIcon } from '@/components/ui/icons'
+import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon } from '@/components/ui/icons'
 
 type Filter = 'all' | 'paid' | 'unpaid'
 
@@ -22,6 +22,30 @@ export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
 
   const total = sumAmounts(filtered)
   const typeLabel = (t: string) => (t === 'diesel' ? 'Diesel' : 'Essence')
+
+  function exportCsv() {
+    const header = ['Date', 'Bus', 'Chauffeur', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
+    const rows = filtered.map((f) => [
+      f.date,
+      f.bus_number,
+      f.driver_name,
+      typeLabel(f.fuel_type),
+      String(f.liters),
+      String(f.unit_price),
+      String(f.amount),
+      f.paid ? 'Payé' : 'Non payé',
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${c}"`).join(';'))
+      .join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `recus-${todayLocalISO()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="space-y-4">
@@ -58,6 +82,16 @@ export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
             </p>
           </div>
         </div>
+        {filtered.length > 0 ? (
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <DownloadIcon size={16} />
+            Exporter CSV
+          </button>
+        ) : null}
       </div>
 
       {filtered.length === 0 ? (

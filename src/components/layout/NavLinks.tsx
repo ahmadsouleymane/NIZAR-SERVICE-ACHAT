@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { Profile } from '@/lib/types'
-import { CalendarIcon, CameraIcon, ClockIcon, ReceiptIcon, CogIcon } from '@/components/ui/icons'
+import { CalendarIcon, CameraIcon, ClockIcon, ReceiptIcon, CogIcon, BarChartIcon } from '@/components/ui/icons'
 
 export type NavVariant = 'sidebar' | 'bottom'
 
 const LINKS = [
+  { href: '/dashboard', label: 'Tableau de bord', icon: BarChartIcon },
   { href: '/', label: 'Départs', icon: CalendarIcon },
   { href: '/scanner', label: 'Scanner', icon: CameraIcon },
   { href: '/historique', label: 'Historique', icon: ClockIcon },

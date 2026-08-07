@@ -154,6 +154,18 @@ export const RotateIcon = (p: IconProps) => (
   </Base>
 )
 
+export const BarChartIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M6 20V10M12 20V4M18 20v-8" />
+  </Base>
+)
+
+export const DownloadIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+  </Base>
+)
+
 export const LogoutIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
