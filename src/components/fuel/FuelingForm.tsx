@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { DepartureWithFuel, FuelPrice, FuelType } from '@/lib/types'
 import { computeAmount, formatFcfa, latestPrice, sumAmounts, todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input, Select } from '@/components/ui'
-import { DropletIcon, AlertIcon, BanknotesIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, DropletIcon, AlertIcon, BanknotesIcon } from '@/components/ui/icons'
 
 interface Props {
   departure: DepartureWithFuel
@@ -19,6 +19,9 @@ export function FuelingForm({ departure, onSaved }: Props) {
   const [prices, setPrices] = useState<FuelPrice[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [receiptPhoto, setReceiptPhoto] = useState<File | null>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     supabase.from('fuel_prices').select('*').order('effective_date').then(({ data }) => setPrices((data ?? []) as FuelPrice[]))
@@ -42,6 +45,20 @@ export function FuelingForm({ departure, onSaved }: Props) {
       return
     }
     setBusy(true)
+
+    let receiptPhotoUrl: string | null = null
+    if (receiptPhoto) {
+      const path = `${today}/${crypto.randomUUID()}.jpg`
+      const { error: upErr } = await supabase.storage.from('receipts').upload(path, receiptPhoto)
+      if (upErr) {
+        setError(`Upload du reçu impossible : ${upErr.message}`)
+        setBusy(false)
+        return
+      }
+      const { data: pub } = supabase.storage.from('receipts').getPublicUrl(path)
+      receiptPhotoUrl = pub.publicUrl
+    }
+
     const { error } = await supabase.from('fuelings').insert({
       date: today,
       departure_id: departure.id,
@@ -51,6 +68,7 @@ export function FuelingForm({ departure, onSaved }: Props) {
       liters: l,
       unit_price: unitPrice,
       amount,
+      ...(receiptPhotoUrl ? { receipt_photo_url: receiptPhotoUrl } : {}),
     })
     setBusy(false)
     if (error) {
@@ -115,6 +133,45 @@ export function FuelingForm({ departure, onSaved }: Props) {
       <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm">
         <p className="text-blue-700">Total du départ (avec ce plein)</p>
         <p className="tabular text-lg font-extrabold text-blue-800">{formatFcfa(departureTotal)}</p>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm font-semibold text-slate-700">Photo du reçu (optionnel)</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:bg-blue-50/40"
+          >
+            <CameraIcon size={16} />
+            Photo
+          </button>
+          <button
+            type="button"
+            onClick={() => galleryRef.current?.click()}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:bg-blue-50/40"
+          >
+            <UploadIcon size={16} />
+            Galerie
+          </button>
+        </div>
+        {receiptPhoto ? <p className="mt-2 text-xs text-slate-500">{receiptPhoto.name}</p> : null}
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(e) => setReceiptPhoto(e.target.files?.[0] ?? null)}
+          className="hidden"
+        />
+        <input
+          ref={galleryRef}
+          data-testid="receipt-photo-input"
+          type="file"
+          accept="image/*"
+          onChange={(e) => setReceiptPhoto(e.target.files?.[0] ?? null)}
+          className="hidden"
+        />
       </div>
 
       {error ? (
