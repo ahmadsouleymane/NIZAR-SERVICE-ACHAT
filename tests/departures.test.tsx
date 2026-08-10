@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { StatusBadge } from '@/components/departures/StatusBadge'
 import { DepartureList } from '@/components/departures/DepartureList'
-import type { DepartureWithFuel } from '@/lib/types'
+import type { DepartureWithFuel, RouteSegment } from '@/lib/types'
 
 const departure = (overrides: Partial<DepartureWithFuel> = {}): DepartureWithFuel => ({
   id: 'd1',
@@ -57,5 +57,24 @@ describe('DepartureList', () => {
     ]
     render(<DepartureList departures={rows} />)
     expect(screen.getByText('92 700 FCFA')).toBeInTheDocument()
+  })
+})
+
+describe('DepartureList — distance et consommation prévisionnelle', () => {
+  const segments: RouteSegment[] = [
+    { id: 's1', city_a: 'NIAMEY', city_b: 'AGADEZ', distance_km: 951, created_by: null, created_at: '' },
+  ]
+
+  it('affiche la distance et la consommation prévues quand l’itinéraire est connu', () => {
+    const rows = [departure({ id: '1', axis: 'NIAMEY - AGADEZ' })]
+    render(<DepartureList departures={rows} segments={segments} consumptionRate={30} />)
+    expect(screen.getByText(/≈ 951 km/)).toBeInTheDocument()
+    expect(screen.getByText(/≈ 285 L prévus/)).toBeInTheDocument()
+  })
+
+  it('n’affiche rien quand un tronçon de l’itinéraire est inconnu', () => {
+    const rows = [departure({ id: '1', axis: 'NIAMEY - LOGA - AGADEZ' })]
+    render(<DepartureList departures={rows} segments={segments} consumptionRate={30} />)
+    expect(screen.queryByText(/≈/)).not.toBeInTheDocument()
   })
 })

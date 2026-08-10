@@ -1,15 +1,25 @@
-import type { DepartureWithFuel } from '@/lib/types'
+import type { DepartureWithFuel, RouteSegment } from '@/lib/types'
 import { originOf } from '@/lib/planning/parse'
+import { parseRoute, computeDistanceKm, predictedLiters } from '@/lib/planning/route'
 import { sumAmounts, formatFcfa } from '@/lib/fuel/calculations'
 import { StatusBadge, type FuelingStatus } from './StatusBadge'
 
-export function DepartureList({ departures, onFuel }: { departures: DepartureWithFuel[]; onFuel?: (d: DepartureWithFuel) => void }) {
+interface Props {
+  departures: DepartureWithFuel[]
+  onFuel?: (d: DepartureWithFuel) => void
+  segments?: RouteSegment[]
+  consumptionRate?: number | null
+}
+
+export function DepartureList({ departures, onFuel, segments = [], consumptionRate = null }: Props) {
   const groups = new Map<string, DepartureWithFuel[]>()
   for (const d of departures) {
     const city = originOf(d.axis)
     if (!groups.has(city)) groups.set(city, [])
     groups.get(city)!.push(d)
   }
+
+  const segmentInputs = segments.map((s) => ({ cityA: s.city_a, cityB: s.city_b, distanceKm: s.distance_km }))
 
   return (
     <div className="space-y-6">
@@ -25,6 +35,8 @@ export function DepartureList({ departures, onFuel }: { departures: DepartureWit
               const total = sumAmounts(d.fuelings)
               const paid = d.fuelings.length > 0 && d.fuelings.every((f) => f.paid)
               const status: FuelingStatus = d.fuelings.length === 0 ? 'empty' : paid ? 'paid' : 'fueled'
+              const distanceKm = computeDistanceKm(parseRoute(d.axis), segmentInputs)
+              const liters = predictedLiters(distanceKm, consumptionRate)
               return (
                 <button
                   key={d.id}
@@ -40,6 +52,11 @@ export function DepartureList({ departures, onFuel }: { departures: DepartureWit
                     <span className="block truncate text-xs text-slate-500">
                       {d.bus_number} · {d.driver_name || '—'}
                     </span>
+                    {distanceKm != null ? (
+                      <span className="block text-xs text-slate-400">
+                        ≈ {distanceKm} km{liters != null ? ` · ≈ ${liters} L prévus` : ''}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-1">
                     {d.fuelings.length > 0 ? (
