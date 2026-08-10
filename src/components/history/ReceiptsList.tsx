@@ -8,7 +8,10 @@ import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon } from '@/compone
 
 type Filter = 'all' | 'paid' | 'unpaid'
 
-export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
+// La page /recus fournit receipt_photo_url (URL signée du bucket privé "receipts")
+export type ReceiptsListFueling = Fueling & { receipt_photo_url?: string | null }
+
+export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [date, setDate] = useState('')
 

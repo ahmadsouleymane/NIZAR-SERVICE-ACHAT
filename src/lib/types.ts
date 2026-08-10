@@ -59,7 +59,7 @@ export interface Fueling {
   amount: number
   paid: boolean
   paid_at: string | null
-  receipt_photo_url: string | null
+  receipt_photo_path: string | null
   recorded_by: string | null
   created_at: string
 }

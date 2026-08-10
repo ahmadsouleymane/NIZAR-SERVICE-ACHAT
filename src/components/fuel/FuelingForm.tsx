@@ -47,7 +47,6 @@ export function FuelingForm({ departure, onSaved }: Props) {
     setBusy(true)
 
     let uploadPath: string | null = null
-    let receiptPhotoUrl: string | null = null
     if (receiptPhoto) {
       const path = `${today}/${crypto.randomUUID()}.jpg`
       uploadPath = path
@@ -57,8 +56,6 @@ export function FuelingForm({ departure, onSaved }: Props) {
         setBusy(false)
         return
       }
-      const { data: pub } = supabase.storage.from('receipts').getPublicUrl(path)
-      receiptPhotoUrl = pub.publicUrl
     }
 
     const { error } = await supabase.from('fuelings').insert({
@@ -70,7 +67,7 @@ export function FuelingForm({ departure, onSaved }: Props) {
       liters: l,
       unit_price: unitPrice,
       amount,
-      ...(receiptPhotoUrl ? { receipt_photo_url: receiptPhotoUrl } : {}),
+      ...(uploadPath ? { receipt_photo_path: uploadPath } : {}),
     })
     setBusy(false)
     if (error) {

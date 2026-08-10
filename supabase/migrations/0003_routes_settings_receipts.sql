@@ -20,7 +20,9 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
-alter table public.fuelings add column if not exists receipt_photo_url text;
+-- Chemin de l'objet reçu dans le bucket privé "receipts" (pas d'URL publique :
+-- l'app génère des URL signées au moment de l'affichage, voir /recus).
+alter table public.fuelings add column if not exists receipt_photo_path text;
 
 -- Seed : distances routières (sources web concordantes, arrondies au km).
 -- LOGA ↔ AGADEZ absent : aucune source fiable pour la suite directe au nord
@@ -80,9 +82,10 @@ drop policy if exists "app_settings_update_admin" on public.app_settings;
 create policy "app_settings_update_admin" on public.app_settings
   for update using (public.is_admin()) with check (public.is_admin());
 
--- Stockage : bucket "receipts" (à créer manuellement dans Supabase — voir
--- DEPLOYMENT.md). Lecture réservée aux utilisateurs connectés : les reçus
--- contiennent des informations financières (bus, date, montant).
+-- Stockage : bucket "receipts" (à créer manuellement dans Supabase, PRIVÉ
+-- public=false — voir DEPLOYMENT.md). Lecture et écriture réservées aux
+-- utilisateurs connectés : les reçus contiennent des informations financières
+-- (bus, date, montant). L'affichage passe par des URL signées (voir /recus).
 drop policy if exists "receipts_storage_read" on storage.objects;
 create policy "receipts_storage_read" on storage.objects
   for select using (bucket_id = 'receipts' and auth.role() = 'authenticated');

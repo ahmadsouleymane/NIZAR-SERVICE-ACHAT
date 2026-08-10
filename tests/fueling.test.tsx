@@ -24,7 +24,6 @@ const prices: FuelPrice[] = [
 
 const mockInsert = vi.fn()
 const mockUpload = vi.fn()
-const mockGetPublicUrl = vi.fn()
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -33,7 +32,7 @@ vi.mock('@/lib/supabase/client', () => ({
         ? { insert: mockInsert }
         : { select: () => ({ order: () => Promise.resolve({ data: prices }) }) },
     storage: {
-      from: () => ({ upload: mockUpload, getPublicUrl: mockGetPublicUrl }),
+      from: () => ({ upload: mockUpload }),
     },
   }),
 }))
@@ -42,7 +41,6 @@ describe('FuelingForm', () => {
   beforeEach(() => {
     mockInsert.mockClear()
     mockUpload.mockClear()
-    mockGetPublicUrl.mockClear()
   })
 
   it('pré-remplit bus et chauffeur depuis le départ', () => {
@@ -79,10 +77,9 @@ describe('FuelingForm', () => {
     })
   })
 
-  it('upload la photo du reçu et l’attache au plein enregistré', async () => {
+  it('upload la photo du reçu et attache son chemin au plein enregistré', async () => {
     mockInsert.mockResolvedValue({ error: null })
     mockUpload.mockResolvedValue({ error: null })
-    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://ex.test/receipts/x.jpg' } })
     render(<FuelingForm departure={departure} onSaved={() => {}} />)
     await screen.findByText('618 FCFA')
     fireEvent.change(screen.getByLabelText(/litres/i), { target: { value: '300' } })
@@ -91,6 +88,7 @@ describe('FuelingForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /enregistrer le plein/i }))
     await waitFor(() => expect(mockInsert).toHaveBeenCalled())
     expect(mockUpload).toHaveBeenCalled()
-    expect(mockInsert.mock.calls[0][0]).toMatchObject({ receipt_photo_url: 'https://ex.test/receipts/x.jpg' })
+    const arg = mockInsert.mock.calls[0][0] as { receipt_photo_path?: string }
+    expect(arg.receipt_photo_path).toMatch(new RegExp(`^${todayLocalISO()}/.+\\.jpg$`))
   })
 })

@@ -9,9 +9,10 @@ const plannings: Planning[] = [
   { id: 'p2', date: '2026-08-05', source_label: 'Niamey', image_urls: [], created_by: null, created_at: '' },
 ]
 
-const fuelings: Fueling[] = [
-  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_url: 'https://ex.test/receipts/f1.jpg', recorded_by: null, created_at: '' },
-  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', receipt_photo_url: null, recorded_by: null, created_at: '' },
+// La page /recus fournit receipt_photo_url (URL signée du bucket privé "receipts")
+const fuelings: (Fueling & { receipt_photo_url?: string | null })[] = [
+  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_path: '2026-08-06/f1.jpg', receipt_photo_url: 'https://ex.test/signed/receipts/f1.jpg', recorded_by: null, created_at: '' },
+  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', receipt_photo_path: null, receipt_photo_url: null, recorded_by: null, created_at: '' },
 ]
 
 describe('PlanningsList', () => {
@@ -39,7 +40,7 @@ describe('ReceiptsList', () => {
   it('affiche un lien vers la photo du reçu quand elle existe', () => {
     render(<ReceiptsList fuelings={fuelings} />)
     const link = screen.getByRole('link', { name: /voir le reçu/i })
-    expect(link).toHaveAttribute('href', 'https://ex.test/receipts/f1.jpg')
+    expect(link).toHaveAttribute('href', 'https://ex.test/signed/receipts/f1.jpg')
     // f2 n'a pas de photo : un seul lien affiché
     expect(screen.getAllByRole('link', { name: /voir le reçu/i })).toHaveLength(1)
   })
