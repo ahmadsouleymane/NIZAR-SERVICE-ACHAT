@@ -45,6 +45,9 @@ ocr-service/.venv/
 __pycache__/
 *.pyc
 
+# CLI Supabase (état local de liaison, ne doit pas être commité)
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
