@@ -94,8 +94,9 @@ toujours active de 512 Mo). PaddleOCR a besoin de cette mémoire pour tourner.
 ## 3. Base de données Supabase (production)
 
 Sur le projet Supabase de production :
-1. Exécuter `supabase/migrations/0001_init.sql` puis `0002_fix_rls.sql` dans le **SQL Editor**.
-2. Créer un bucket de stockage public nommé `plannings`.
+1. Exécuter `supabase/migrations/0001_init.sql`, `0002_fix_rls.sql` puis
+   `0003_routes_settings_receipts.sql` dans le **SQL Editor**.
+2. Créer deux buckets de stockage publics : `plannings` et `receipts`.
 3. Créer le premier compte admin (Authentication → Users), puis passer son rôle à `admin`.
 
 ---

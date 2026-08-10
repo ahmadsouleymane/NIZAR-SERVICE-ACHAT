@@ -50,8 +50,8 @@ describe('DepartureList', () => {
       departure({
         id: '1',
         fuelings: [
-          { id: 'f1', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 100, unit_price: 618, amount: 61800, paid: false, paid_at: null, recorded_by: null, created_at: '' },
-          { id: 'f2', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 50, unit_price: 618, amount: 30900, paid: false, paid_at: null, recorded_by: null, created_at: '' },
+          { id: 'f1', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 100, unit_price: 618, amount: 61800, paid: false, paid_at: null, receipt_photo_url: null, recorded_by: null, created_at: '' },
+          { id: 'f2', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 50, unit_price: 618, amount: 30900, paid: false, paid_at: null, receipt_photo_url: null, recorded_by: null, created_at: '' },
         ],
       }),
     ]

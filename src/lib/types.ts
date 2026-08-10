@@ -38,6 +38,15 @@ export interface FuelPrice {
   created_at: string
 }
 
+export interface RouteSegment {
+  id: string
+  city_a: string
+  city_b: string
+  distance_km: number
+  created_by: string | null
+  created_at: string
+}
+
 export interface Fueling {
   id: string
   date: string
@@ -50,6 +59,7 @@ export interface Fueling {
   amount: number
   paid: boolean
   paid_at: string | null
+  receipt_photo_url: string | null
   recorded_by: string | null
   created_at: string
 }
