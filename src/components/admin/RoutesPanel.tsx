@@ -23,8 +23,17 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
   const [busy, setBusy] = useState(false)
 
   async function refresh() {
-    const { data } = await supabase.from('route_segments').select('*').order('city_a')
-    setSegments((data ?? []) as RouteSegment[])
+    try {
+      const { data, error } = await supabase.from('route_segments').select('*').order('city_a')
+      if (error) {
+        setError(error.message)
+        return
+      }
+      setSegments((data ?? []) as RouteSegment[])
+    } catch (err) {
+      setError('Rechargement des tronçons impossible')
+      console.error('refresh route_segments', err)
+    }
   }
 
   async function handleAddSegment(e: React.FormEvent) {
@@ -87,6 +96,12 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
 
   return (
     <div className="space-y-6">
+      {error ? (
+        <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
+          <AlertIcon size={18} className="mt-0.5 shrink-0" />
+          {error}
+        </p>
+      ) : null}
       <form onSubmit={handleRateSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="text-base font-bold text-slate-900">Consommation prévisionnelle</h3>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -111,12 +126,6 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
             </Button>
           </div>
         </div>
-        {error ? (
-          <p role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm font-medium text-red-700">
-            <AlertIcon size={18} className="mt-0.5 shrink-0" />
-            {error}
-          </p>
-        ) : null}
       </form>
 
       <Card title="Tronçons enregistrés">

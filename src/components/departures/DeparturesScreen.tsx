@@ -47,10 +47,12 @@ export function DeparturesScreen() {
 
   useEffect(() => {
     // chargement des réglages : setState après await
-    Promise.all([fetchRouteSegments(supabase), fetchConsumptionRate(supabase)]).then(([segs, rate]) => {
-      setSegments(segs)
-      setConsumptionRate(rate)
-    })
+    Promise.all([fetchRouteSegments(supabase), fetchConsumptionRate(supabase)])
+      .then(([segs, rate]) => {
+        setSegments(segs)
+        setConsumptionRate(rate)
+      })
+      .catch((err) => console.error('Chargement des réglages impossible', err))
   }, [supabase])
 
   const grandTotal = sumAmounts(fuelings)

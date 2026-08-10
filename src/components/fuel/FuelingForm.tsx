@@ -46,9 +46,11 @@ export function FuelingForm({ departure, onSaved }: Props) {
     }
     setBusy(true)
 
+    let uploadPath: string | null = null
     let receiptPhotoUrl: string | null = null
     if (receiptPhoto) {
       const path = `${today}/${crypto.randomUUID()}.jpg`
+      uploadPath = path
       const { error: upErr } = await supabase.storage.from('receipts').upload(path, receiptPhoto)
       if (upErr) {
         setError(`Upload du reçu impossible : ${upErr.message}`)
@@ -72,6 +74,7 @@ export function FuelingForm({ departure, onSaved }: Props) {
     })
     setBusy(false)
     if (error) {
+      if (uploadPath) await supabase.storage.from('receipts').remove([uploadPath])
       setError(error.message)
       return
     }

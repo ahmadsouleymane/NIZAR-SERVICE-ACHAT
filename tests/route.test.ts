@@ -69,6 +69,11 @@ describe('predictedLiters', () => {
     expect(predictedLiters(951, null)).toBeNull()
     expect(predictedLiters(951, 0)).toBeNull()
   })
+  it('renvoie null pour des entrées non finies ou négatives', () => {
+    expect(predictedLiters(NaN, 30)).toBeNull()
+    expect(predictedLiters(951, Infinity)).toBeNull()
+    expect(predictedLiters(-100, 30)).toBeNull()
+  })
 })
 
 describe('parseConsumptionRate', () => {

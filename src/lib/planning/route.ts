@@ -39,7 +39,14 @@ export function computeDistanceKm(cities: string[], segments: RouteSegmentInput[
 }
 
 export function predictedLiters(distanceKm: number | null, ratePer100km: number | null): number | null {
-  if (distanceKm == null || ratePer100km == null || ratePer100km <= 0) return null
+  if (
+    distanceKm == null ||
+    ratePer100km == null ||
+    !Number.isFinite(distanceKm) ||
+    !Number.isFinite(ratePer100km) ||
+    distanceKm < 0 ||
+    ratePer100km <= 0
+  ) return null
   return Math.round((distanceKm * ratePer100km) / 100)
 }
 
