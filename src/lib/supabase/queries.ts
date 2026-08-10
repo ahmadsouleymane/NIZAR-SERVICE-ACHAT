@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Departure, Fueling, FuelPrice } from '@/lib/types'
+import type { Departure, Fueling, FuelPrice, RouteSegment } from '@/lib/types'
+import { parseConsumptionRate } from '@/lib/planning/route'
 
 export async function fetchDeparturesForDate(supabase: SupabaseClient, date: string): Promise<Departure[]> {
   const { data } = await supabase
@@ -25,4 +26,18 @@ export async function fetchFuelPrices(supabase: SupabaseClient): Promise<FuelPri
     .select('*')
     .order('effective_date')
   return (data ?? []) as FuelPrice[]
+}
+
+export async function fetchRouteSegments(supabase: SupabaseClient): Promise<RouteSegment[]> {
+  const { data } = await supabase.from('route_segments').select('*').order('city_a')
+  return (data ?? []) as RouteSegment[]
+}
+
+export async function fetchConsumptionRate(supabase: SupabaseClient): Promise<number | null> {
+  const { data } = await supabase
+    .from('app_settings')
+    .select('*')
+    .eq('key', 'consumption_l_per_100km')
+    .maybeSingle()
+  return parseConsumptionRate(data?.value ?? null)
 }

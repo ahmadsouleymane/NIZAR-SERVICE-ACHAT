@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Departure, DepartureWithFuel, Fueling } from '@/lib/types'
-import { fetchDeparturesForDate, fetchFuelingsForDate } from '@/lib/supabase/queries'
+import type { Departure, DepartureWithFuel, Fueling, RouteSegment } from '@/lib/types'
+import { fetchDeparturesForDate, fetchFuelingsForDate, fetchRouteSegments, fetchConsumptionRate } from '@/lib/supabase/queries'
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { DatePicker } from './DatePicker'
 import { DepartureList } from './DepartureList'
@@ -16,6 +16,8 @@ export function DeparturesScreen() {
   const [departures, setDepartures] = useState<DepartureWithFuel[]>([])
   const [fuelings, setFuelings] = useState<Fueling[]>([])
   const [selected, setSelected] = useState<DepartureWithFuel | null>(null)
+  const [segments, setSegments] = useState<RouteSegment[]>([])
+  const [consumptionRate, setConsumptionRate] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -42,6 +44,15 @@ export function DeparturesScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(date)
   }, [date, load])
+
+  useEffect(() => {
+    // chargement des réglages : setState après await (faux positif de la règle)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    Promise.all([fetchRouteSegments(supabase), fetchConsumptionRate(supabase)]).then(([segs, rate]) => {
+      setSegments(segs)
+      setConsumptionRate(rate)
+    })
+  }, [supabase])
 
   const grandTotal = sumAmounts(fuelings)
   const pendingCount = fuelings.filter((f) => !f.paid).length
@@ -104,7 +115,7 @@ export function DeparturesScreen() {
           message={`Aucun départ prévu pour cette date. Scannez le planning dans l'onglet Scanner.`}
         />
       ) : (
-        <DepartureList departures={departures} onFuel={(d) => setSelected(d)} />
+        <DepartureList departures={departures} onFuel={(d) => setSelected(d)} segments={segments} consumptionRate={consumptionRate} />
       )}
 
       {selected ? (
