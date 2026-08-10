@@ -10,7 +10,7 @@ const plannings: Planning[] = [
 ]
 
 const fuelings: Fueling[] = [
-  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_url: null, recorded_by: null, created_at: '' },
+  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_url: 'https://ex.test/receipts/f1.jpg', recorded_by: null, created_at: '' },
   { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', receipt_photo_url: null, recorded_by: null, created_at: '' },
 ]
 
@@ -35,5 +35,12 @@ describe('ReceiptsList', () => {
     fireEvent.change(screen.getByLabelText(/statut/i), { target: { value: 'paid' } })
     expect(screen.queryByText('CG 6377')).not.toBeInTheDocument()
     expect(screen.getByText('BH 8210')).toBeInTheDocument()
+  })
+  it('affiche un lien vers la photo du reçu quand elle existe', () => {
+    render(<ReceiptsList fuelings={fuelings} />)
+    const link = screen.getByRole('link', { name: /voir le reçu/i })
+    expect(link).toHaveAttribute('href', 'https://ex.test/receipts/f1.jpg')
+    // f2 n'a pas de photo : un seul lien affiché
+    expect(screen.getAllByRole('link', { name: /voir le reçu/i })).toHaveLength(1)
   })
 })

@@ -110,6 +110,14 @@ export function ReceiptsList({ fuelings }: { fuelings: Fueling[] }) {
                 </div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {f.date} · {f.liters} L
+                  {f.receipt_photo_url ? (
+                    <>
+                      {' · '}
+                      <a href={f.receipt_photo_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        Voir le reçu
+                      </a>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end">
