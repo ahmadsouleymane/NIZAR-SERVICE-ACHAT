@@ -113,6 +113,12 @@ export const TrashIcon = (p: IconProps) => (
   </Base>
 )
 
+export const PencilIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+  </Base>
+)
+
 export const AlertIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M12 3 2 20h20z" />

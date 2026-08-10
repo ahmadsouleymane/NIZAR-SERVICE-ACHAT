@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { RouteSegment } from '@/lib/types'
 import { normalizeCityName } from '@/lib/planning/route'
 import { Button, Input, Card } from '@/components/ui'
-import { AlertIcon, TrashIcon } from '@/components/ui/icons'
+import { AlertIcon, TrashIcon, PencilIcon } from '@/components/ui/icons'
 
 interface Props {
   initialSegments: RouteSegment[]
@@ -18,6 +18,7 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
   const [cityA, setCityA] = useState('')
   const [cityB, setCityB] = useState('')
   const [distanceKm, setDistanceKm] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [rate, setRate] = useState(initialConsumptionRate ? String(initialConsumptionRate) : '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -36,7 +37,22 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
     }
   }
 
-  async function handleAddSegment(e: React.FormEvent) {
+  function resetForm() {
+    setCityA('')
+    setCityB('')
+    setDistanceKm('')
+    setEditingId(null)
+  }
+
+  function handleEdit(s: RouteSegment) {
+    setCityA(s.city_a)
+    setCityB(s.city_b)
+    setDistanceKm(String(s.distance_km))
+    setEditingId(s.id)
+    setError('')
+  }
+
+  async function handleSubmitSegment(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     const d = Number(distanceKm)
@@ -49,19 +65,23 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
       return
     }
     setBusy(true)
-    const { error } = await supabase.from('route_segments').insert({
+    const payload = {
       city_a: normalizeCityName(cityA),
       city_b: normalizeCityName(cityB),
       distance_km: d,
-    })
+    }
+    let res: { error: { message: string } | null } | null = null
+    if (editingId) {
+      res = await supabase.from('route_segments').update(payload).eq('id', editingId)
+    } else {
+      res = await supabase.from('route_segments').insert(payload)
+    }
     setBusy(false)
-    if (error) {
-      setError(error.message)
+    if (res?.error) {
+      setError(res.error.message)
       return
     }
-    setCityA('')
-    setCityB('')
-    setDistanceKm('')
+    resetForm()
     await refresh()
   }
 
@@ -114,16 +134,23 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
         </div>
       </form>
 
-      <form onSubmit={handleAddSegment} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
-        <h3 className="text-base font-bold text-slate-900">Ajouter un tronçon</h3>
+      <form onSubmit={handleSubmitSegment} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 className="text-base font-bold text-slate-900">
+          {editingId ? 'Modifier un tronçon' : 'Ajouter un tronçon'}
+        </h3>
         <div className="grid gap-3 sm:grid-cols-4">
           <Input id="cityA" label="Ville A" value={cityA} onChange={(e) => setCityA(e.target.value)} />
           <Input id="cityB" label="Ville B" value={cityB} onChange={(e) => setCityB(e.target.value)} />
           <Input id="distanceKm" label="Distance (km)" type="number" min="0" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} />
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <Button type="submit" disabled={busy} className="w-full">
-              {busy ? '…' : 'Ajouter'}
+              {busy ? '…' : editingId ? 'Mettre à jour' : 'Ajouter'}
             </Button>
+            {editingId ? (
+              <Button type="button" variant="secondary" disabled={busy} onClick={resetForm}>
+                Annuler
+              </Button>
+            ) : null}
           </div>
         </div>
       </form>
@@ -135,6 +162,14 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
               <span className="text-slate-700">{s.city_a} ↔ {s.city_b}</span>
               <span className="flex items-center gap-3">
                 <span className="tabular font-bold text-slate-900">{s.distance_km} km</span>
+                <button
+                  type="button"
+                  aria-label="Modifier"
+                  onClick={() => handleEdit(s)}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <PencilIcon size={16} />
+                </button>
                 <button
                   type="button"
                   aria-label="Supprimer"
