@@ -8,7 +8,6 @@ const segments: RouteSegment[] = [
 ]
 
 const mockInsert = vi.fn()
-const mockDelete = vi.fn()
 const mockEq = vi.fn()
 const mockUpsert = vi.fn()
 

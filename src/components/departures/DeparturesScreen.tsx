@@ -46,8 +46,7 @@ export function DeparturesScreen() {
   }, [date, load])
 
   useEffect(() => {
-    // chargement des réglages : setState après await (faux positif de la règle)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // chargement des réglages : setState après await
     Promise.all([fetchRouteSegments(supabase), fetchConsumptionRate(supabase)]).then(([segs, rate]) => {
       setSegments(segs)
       setConsumptionRate(rate)
