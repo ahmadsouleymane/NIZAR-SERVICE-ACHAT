@@ -23,9 +23,10 @@ create table if not exists public.app_settings (
 alter table public.fuelings add column if not exists receipt_photo_url text;
 
 -- Seed : distances routières (sources web concordantes, arrondies au km).
--- LOGA ↔ AGADEZ volontairement absent : aucune source fiable trouvée, à
--- renseigner manuellement dans Admin > Itinéraires dès que la route exacte
--- au nord de Loga est connue.
+-- LOGA ↔ AGADEZ absent : aucune source fiable pour la suite directe au nord
+-- de Loga — l'itinéraire « via Loga » vers Agadez passe par DOGONDOUTCHI
+-- (tronçon ci-dessous, route N23, valeur approximative à vérifier sur le
+-- terrain puis ajustable dans Admin > Itinéraires).
 -- NB Loga n'est PAS sur la RN1 (corridor Niamey-Dosso) : le trajet
 -- « NIAMEY - LOGA - DOSSO » (212 km) est un détour réel mais inhabituel.
 insert into public.route_segments (city_a, city_b, distance_km) values
@@ -41,7 +42,8 @@ insert into public.route_segments (city_a, city_b, distance_km) values
   ('NIAMEY', 'MARADI', 664),
   ('MARADI', 'ZINDER', 238),
   ('NIAMEY', 'ZINDER', 891),
-  ('NIAMEY', 'GAYA', 287)
+  ('NIAMEY', 'GAYA', 287),
+  ('LOGA', 'DOGONDOUTCHI', 131)
 on conflict (city_a, city_b) do nothing;
 
 -- Seed : taux de consommation prévisionnelle global (L/100km), provisoire
