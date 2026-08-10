@@ -31,9 +31,7 @@ sur **Fly.io**, à chaque `git push` sur la branche principale.
    | `NEXT_PUBLIC_SUPABASE_URL` | l'URL de ton projet Supabase |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | la clé « anon » |
    | `SUPABASE_SERVICE_ROLE_KEY` | la clé « service role » |
-   | `GEMINI_API_KEY` | ta clé Google Gemini |
-   | `GEMINI_MODEL` | `gemini-3.6-flash` |
-   | `OCR_SERVICE_URL` | l'URL du service Fly.io (voir ci-dessous), ou laisser vide pour utiliser Gemini seul |
+   | `OCR_SERVICE_URL` | l'URL du service OCR gratuit (Fly.io ou Render, voir ci-dessous) — **obligatoire**, le scan ne fonctionne pas sans |
 
 4. **Deploy** → chaque `git push` sur `main` déploie automatiquement.
 
