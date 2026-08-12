@@ -14,6 +14,8 @@ Service FastAPI qui reconnaît le texte des photos de planning avec PaddleOCR
    - **Start command** : `uvicorn app:app --host 0.0.0.0 --port $PORT`
    - **Instance Type** : au moins **Starter** (512 Mo) — le free tier dort après 15 min
      d'inactivité (premier scan lent ~1 min) et PaddleOCR est gourmand en RAM.
+   - La version de Python est fixée par `.python-version` (3.10) — `paddlepaddle` n'a pas
+     de version compatible avec les Python plus récents que Render utilise par défaut.
 4. **Deploy**.
 5. Copier l'URL du service (ex. `https://mon-ocr.onrender.com`) → la mettre dans
    l'application Next.js : variable `OCR_SERVICE_URL` (`.env.local` et Vercel).
