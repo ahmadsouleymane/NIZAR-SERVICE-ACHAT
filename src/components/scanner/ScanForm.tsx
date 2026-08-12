@@ -3,20 +3,12 @@
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
-import { type ParsedPlanning } from '@/lib/planning/parse'
+import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
+import { ocrImageToLines } from '@/lib/planning/ocr'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
 import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon } from '@/components/ui/icons'
 import { PreviewTable } from './PreviewTable'
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('lecture impossible'))
-    reader.readAsDataURL(blob)
-  })
-}
 
 export function ScanForm() {
   const supabase = createClient()
@@ -66,26 +58,17 @@ export function ScanForm() {
       let date: string | null = null
       const sections: ParsedPlanning['sections'] = []
       for (const photo of photos) {
+        // OCR 100% local (Tesseract.js) : aucun serveur, aucun coût.
         const prepared = await prepareImage(photo)
-        const base64 = await blobToBase64(prepared)
-        const res = await fetch('/api/extract-planning', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64 }),
-        })
-        const json = await res.json()
-        if (!res.ok) {
-          setError(json.error ?? 'Erreur lors de la lecture de la photo.')
-          setBusy(false)
-          return
-        }
-        if (json.date) date = json.date
-        sections.push(...(json.sections ?? []))
+        const lines = await ocrImageToLines(prepared)
+        const parsed = parsePlanning(lines)
+        if (parsed.date) date = parsed.date
+        sections.push(...parsed.sections)
       }
       setPreview({ date, sections })
       setDone(true)
     } catch {
-      setError('Erreur de connexion au service de lecture. Vérifiez votre connexion internet et réessayez.')
+      setError('Impossible de lire la photo sur cet appareil. Vérifiez votre connexion internet (première utilisation) et réessayez.')
     } finally {
       setBusy(false)
     }
