@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parsePlanning } from '@/lib/planning/parse'
 
+// Le premier scan après un redémarrage du service OCR peut être lent
+// (chargement des modèles PaddleOCR) ; on laisse de la marge avant d'abandonner.
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -39,7 +43,7 @@ export async function POST(req: Request) {
     ocrRes = await fetch(`${ocrUrl.replace(/\/$/, '')}/extract`, {
       method: 'POST',
       body: fd,
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(55000),
     })
   } catch {
     return NextResponse.json(

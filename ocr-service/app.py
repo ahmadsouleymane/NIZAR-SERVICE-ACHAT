@@ -29,6 +29,14 @@ def get_ocr():
     return _ocr
 
 
+@app.on_event("startup")
+def preload_ocr():
+    # Télécharge/charge les modèles au démarrage du conteneur plutôt qu'au premier
+    # scan : Render ne route le trafic qu'une fois le démarrage terminé, ce qui
+    # évite un premier scan qui expire côté client pendant le téléchargement.
+    get_ocr()
+
+
 def poly_to_bbox(poly):
     """Convertit un polygone (points [x,y] du contour) en boîte x0,y0,x1,y1."""
     pts = np.asarray(poly).reshape(-1, 2)
