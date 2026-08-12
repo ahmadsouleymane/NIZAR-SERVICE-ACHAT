@@ -6,8 +6,8 @@
 #   parseur du template (voir docs/planning-template.md) :
 #   {"lines": [{"y": 123, "tokens": [{"text": "CG", "x0": 0, "y0": 0, "x1": 40, "y1": 20}, ...]}, ...]}
 
-import io
-import json
+import cv2
+import numpy as np
 from fastapi import FastAPI, UploadFile, File
 from paddleocr import PaddleOCR
 
@@ -25,16 +25,15 @@ def get_ocr():
             use_doc_orientation_classify=False,
             use_doc_unwarping=False,
             use_textline_orientation=False,
-            show_log=False,
         )
     return _ocr
 
 
 def poly_to_bbox(poly):
-    """Convertit un polygone [x1,y1, x2,y2, x3,y3, x4,y4] en boîte x0,y0,x1,y1."""
-    xs = poly[0::2]
-    ys = poly[1::2]
-    return int(min(xs)), int(min(ys)), int(max(xs)), int(max(ys))
+    """Convertit un polygone (points [x,y] du contour) en boîte x0,y0,x1,y1."""
+    pts = np.asarray(poly).reshape(-1, 2)
+    xs, ys = pts[:, 0], pts[:, 1]
+    return int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())
 
 
 @app.get("/health")
@@ -45,8 +44,9 @@ def health():
 @app.post("/extract")
 async def extract(file: UploadFile = File(...)):
     data = await file.read()
+    image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     ocr = get_ocr()
-    results = ocr.predict(io.BytesIO(data))
+    results = ocr.predict(image)
 
     words = []  # (y_center, x0, y0, x1, y1, text)
     for res in results:
