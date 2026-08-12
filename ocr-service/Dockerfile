@@ -1,4 +1,4 @@
-# Service OCR PaddleOCR — conteneur pour Fly.io
+# Service OCR PaddleOCR — conteneur (déploiement recommandé : Render, environnement Python natif, voir README.md)
 FROM python:3.10-slim
 
 # Bibliothèques système requises par OpenCV / PaddleOCR
