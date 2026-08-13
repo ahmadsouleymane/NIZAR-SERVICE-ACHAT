@@ -1,47 +1,43 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { buildAiPrompt, parseAiPlanning, AI_MAX_IMAGES, AI_MODEL_DEFAULT } from '@/lib/planning/ai'
+import { buildRefinementPrompt, parseAiPlanning } from '@/lib/planning/ai'
 
-// Extraction du planning par vision IA (DeepSeek V4 Pro, endpoint OpenAI-compatible).
-// La clé ne sort jamais du serveur. En cas d'échec, l'utilisateur peut toujours
-// revenir à la lecture classique Tesseract.
+// Correction IA du planning : DeepSeek (TEXTE uniquement). Tesseract fait l'OCR
+// côté navigateur, on envoie le texte brut à DeepSeek qui corrige et structure
+// en JSON. L'API DeepSeek ne supporte PAS les images (vérifié en réel) — ce
+// mode texte est le seul utilisable avec une clé DeepSeek.
 //
 // NB : on n'utilise PAS la variable DEEPSEEK_API_KEY (l'environnement injecte une
-// fausse clé sous ce nom). Seule DEEPSEEK_VISION_API_KEY est valable.
+// fausse clé sous ce nom). Seule DEEPSEEK_TEXT_API_KEY est valable.
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'non authentifié' }, { status: 401 })
 
-  const key = process.env.DEEPSEEK_VISION_API_KEY
+  const key = process.env.DEEPSEEK_TEXT_API_KEY
   if (!key) {
     return NextResponse.json(
-      { error: 'Clé IA non configurée (DEEPSEEK_VISION_API_KEY).' },
+      { error: 'Clé IA non configurée (DEEPSEEK_TEXT_API_KEY).' },
       { status: 500 }
     )
   }
+  const model = process.env.DEEPSEEK_TEXT_MODEL ?? 'deepseek-chat'
 
-  let body: { images?: string[] }
+  let body: { text?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Corps de requête invalide.' }, { status: 400 })
   }
 
-  const images = (body.images ?? []).filter(
-    (u): u is string => typeof u === 'string' && u.startsWith('data:image/')
-  )
-  if (images.length === 0) {
-    return NextResponse.json({ error: 'Aucune image valide.' }, { status: 400 })
+  const text = (body.text ?? '').trim()
+  if (!text) {
+    return NextResponse.json({ error: 'Aucun texte OCR reçu.' }, { status: 400 })
   }
-  if (images.length > AI_MAX_IMAGES) {
-    return NextResponse.json(
-      { error: `Trop de photos (max ${AI_MAX_IMAGES}). Scannez en plusieurs fois.` },
-      { status: 400 }
-    )
+  if (text.length > 20000) {
+    return NextResponse.json({ error: 'Texte OCR trop long.' }, { status: 400 })
   }
 
-  const model = process.env.DEEPSEEK_VISION_MODEL ?? AI_MODEL_DEFAULT
   const apiRes = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
@@ -55,10 +51,7 @@ export async function POST(req: Request) {
         },
         {
           role: 'user',
-          content: [
-            { type: 'text', text: buildAiPrompt() },
-            ...images.map((url) => ({ type: 'image_url', image_url: { url } })),
-          ],
+          content: `${buildRefinementPrompt()}\n\n--- OCR À CORRIGER ---\n${text}`,
         },
       ],
     }),

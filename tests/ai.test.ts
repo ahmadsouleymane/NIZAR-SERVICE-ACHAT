@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseAiPlanning, normalizeAiPlanning } from '@/lib/planning/ai'
+import { parseAiPlanning, normalizeAiPlanning, serializeOcrLines } from '@/lib/planning/ai'
+import type { OcrLine } from '@/lib/planning/parse'
 
 describe('parseAiPlanning', () => {
   it('parse une réponse JSON simple', () => {
@@ -44,6 +45,13 @@ describe('normalizeAiPlanning', () => {
     expect(p!.sections[0].departures[0].busNumber).toBe('CG 6326')
   })
 
+  it('normalise l’heure "10H00" en "10 H 00"', () => {
+    const p = normalizeAiPlanning({
+      sections: [{ originCity: 'AGADEZ', departures: [{ busNumber: 'BM 5856', departureTime: '10H00' }] }],
+    })
+    expect(p!.sections[0].departures[0].departureTime).toBe('10 H 00')
+  })
+
   it('accepte les clés avec underscore (origin_city, bus_number)', () => {
     const p = normalizeAiPlanning({
       sections: [{ origin_city: 'ar lit', departures: [{ bus_number: 'BM 5852', driver_name: 'BOUBACAR' }] }],
@@ -61,5 +69,33 @@ describe('normalizeAiPlanning', () => {
       ],
     })
     expect(p!.sections).toHaveLength(0)
+  })
+})
+
+describe('serializeOcrLines', () => {
+  const tok = (text: string, x0 = 0) => ({ text, x0, y0: 0, x1: x0 + text.length * 9, y1: 20 })
+  const ocrLine = (y: number, words: string[]): OcrLine => ({
+    y: y + 10,
+    tokens: words.map((t, i) => tok(t, i * 40)),
+  })
+
+  it('série les lignes triées verticalement, une par ligne', () => {
+    const lines = serializeOcrLines([
+      [
+        ocrLine(200, ['AGADEZ', '-', 'NIAMEY', 'CG', '6377', '05', 'H', '00', 'YOUSSOUF', '96474717']),
+        ocrLine(100, ['DEPART', 'AGADEZ']),
+      ],
+    ])
+    expect(lines).toContain('DEPART AGADEZ')
+    expect(lines.indexOf('DEPART AGADEZ')).toBeLessThan(lines.indexOf('AGADEZ - NIAMEY CG 6377 05 H 00 YOUSSOUF 96474717'))
+  })
+
+  it('sépare les photos par un marqueur', () => {
+    const lines = serializeOcrLines([
+      [ocrLine(0, ['DEPART', 'AGADEZ'])],
+      [ocrLine(0, ['DEPART', 'ARLIT'])],
+    ])
+    expect(lines).toContain('--- PHOTO 1 ---')
+    expect(lines).toContain('--- PHOTO 2 ---')
   })
 })

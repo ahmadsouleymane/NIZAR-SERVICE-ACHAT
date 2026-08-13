@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { rotateImage, prepareImage, prepareImageDataUrl } from '@/lib/planning/preprocess'
-import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
+import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
+import { parsePlanning, type ParsedPlanning, type OcrLine } from '@/lib/planning/parse'
 import { ocrImageToLines } from '@/lib/planning/ocr'
+import { serializeOcrLines } from '@/lib/planning/ai'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
 import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon, TrashIcon, SearchIcon } from '@/components/ui/icons'
@@ -95,8 +96,8 @@ export function ScanForm() {
     }
   }
 
-  // Lecture par vision IA (DeepSeek). Les photos sont envoyées au serveur qui
-  // appelle le modèle vision ; on garde la lecture Tesseract comme secours.
+  // Lecture « IA » : Tesseract fait l'OCR local, puis DeepSeek (texte) corrige
+  // et structure le résultat en JSON. Repli possible sur la lecture classique.
   async function handleAiScan() {
     setError('')
     if (photos.length === 0) {
@@ -105,21 +106,27 @@ export function ScanForm() {
     }
     setAiBusy(true)
     try {
-      const images = await Promise.all(photos.map((p) => prepareImageDataUrl(p)))
+      const allLines: OcrLine[][] = []
+      for (const photo of photos) {
+        const prepared = await prepareImage(photo)
+        const lines = await ocrImageToLines(prepared)
+        allLines.push(lines)
+      }
+      const text = serializeOcrLines(allLines)
       const res = await fetch('/api/ai/extract-planning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images }),
+        body: JSON.stringify({ text }),
       })
       const body = await res.json()
       if (!res.ok) {
-        setError(body.error ?? 'La lecture IA a échoué. Utilisez la lecture classique.')
+        setError(body.error ?? 'La correction IA a échoué. Utilisez la lecture classique.')
         return
       }
       setPreview(body as ParsedPlanning)
       setDone(true)
     } catch {
-      setError('La lecture IA a échoué. Utilisez la lecture classique.')
+      setError('La correction IA a échoué. Utilisez la lecture classique.')
     } finally {
       setAiBusy(false)
     }
@@ -318,7 +325,7 @@ export function ScanForm() {
           {aiBusy ? 'Lecture IA…' : 'Lire avec l’IA (optionnel)'}
         </Button>
         <p className="text-center text-[11px] text-slate-400">
-          IA : photos envoyées au service vision DeepSeek (coût selon votre clé). En cas d’échec, la lecture classique reste disponible.
+          IA : l’OCR est corrigé et structuré par DeepSeek (coût minime). En cas d’échec, la lecture classique reste disponible.
         </p>
       </div>
     </div>

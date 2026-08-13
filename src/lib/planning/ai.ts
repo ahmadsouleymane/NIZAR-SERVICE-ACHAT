@@ -1,36 +1,38 @@
-// Extraction IA du planning (vision DeepSeek) : prompt + parsing/validation de
-// la réponse JSON. La route API appelle le modèle vision ; ce module ne contient
-// que de la logique pure et testable.
-import type { ParsedPlanning } from './parse'
+// Correction IA du planning par DeepSeek (TEXTE uniquement — l'API DeepSeek ne
+// supporte pas les images, vérifié en réel). Tesseract « voit » (OCR local),
+// DeepSeek « corrige et structure » en JSON. Module purement testable.
+import { lineText, normalizeTime, type OcrLine, type ParsedPlanning } from './parse'
 
-export const AI_MODEL_DEFAULT = 'deepseek-v4-pro'
+// Série les lignes OCR de toutes les photos en un bloc texte lisible par l'IA :
+// une ligne par sortie OCR, triées verticalement, séparées par photo.
+export function serializeOcrLines(photos: OcrLine[][]): string {
+  return photos
+    .map((lines, idx) => {
+      const block = [...lines]
+        .sort((a, b) => a.y - b.y)
+        .map(lineText)
+        .filter(Boolean)
+        .join('\n')
+      if (!block) return ''
+      return photos.length > 1 ? `--- PHOTO ${idx + 1} ---\n${block}` : block
+    })
+    .filter(Boolean)
+    .join('\n\n')
+}
 
-// Nombre max de photos envoyées à l'IA en une requête (limite de taille de
-// corps + latence). Au-delà, l'utilisateur fait plusieurs scans.
-export const AI_MAX_IMAGES = 6
-
-export function buildAiPrompt(): string {
-  return `Tu es un extracteur de données pour des plannings de départs d'autocars (Niger).
-Le planning est un tableau à 7 colonnes :
-1. AXE (ex. "AGADEZ - NIAMEY", peut contenir "SPECIAL", "ENCOUR", "REPOS")
-2. N° BUS (ex. "CG 6377", "BM 5769")
-3. HEURE (ex. "05 H 00", "NUIT")
-4. CHAUFFEUR TITULAIRE
-5. CHAUFFEUR SUPPLÉANT (souvent "NEANT")
-6. TÉLÉPHONE TITULAIRE (8 chiffres)
-7. TÉLÉPHONE SUPPLÉANT
-Des sections commencent par "DEPART <VILLE>". La date figure en haut à gauche au format jj/mm/aaaa.
-
-Extrais TOUTES les lignes de TOUTES les photos, en JSON strict (aucun texte autour, aucun marqueur de bloc) :
+export function buildRefinementPrompt(): string {
+  return `Voici l'OCR (reconnaissance de caractères) d'un planning de départs d'autocars (Niger), photo par photo.
+Le tableau a 7 colonnes : AXE | N° BUS | HEURE | CHAUFFEUR TITULAIRE | CHAUFFEUR SUPPLÉANT | TÉLÉPHONE TITULAIRE | TÉLÉPHONE SUPPLÉANT.
+Des sections commencent par "DEPART <VILLE>". L'OCR est imparfait : les colonnes peuvent être mélangées, avec des caractères parasites ("|", "_", "-", "—"). Corrige et structure le tout en JSON strict, sans texte autour, sans marqueur de bloc :
 {"date":"AAAA-MM-JJ","sections":[{"originCity":"NIAMEY","departures":[{"axis":"AGADEZ - NIAMEY ENCOUR","busNumber":"CG 6377","departureTime":"05 H 00","driverName":"YOUSSOUF","driverPhone":"96474717","backupDriver":"","backupPhone":""}]}]}
-
 Règles :
-- axis : texte exact tel qu'imprimé (garde "SPECIAL" / "ENCOUR" s'ils y figurent).
-- busNumber : normalise "CG6326" en "CG 6326" (2 lettres + espace + 3-4 chiffres).
+- Rétablis les colonnes grâce au contexte : un n° de bus = 2 lettres + 3-4 chiffres ; un téléphone = 7-8 chiffres.
+- axis : texte exact tel qu'imprimé (garde SPECIAL / ENCOUR / REPOS s'ils y figurent).
+- busNumber : normalise "CG6326" en "CG 6326".
 - departureTime : "HH H MM" (ex. "05 H 00") ou "NUIT".
 - NEANT → champ vide "".
-- Si une cellule est illisible, renvoie "" plutôt que d'inventer.
-- N'invente JAMAIS de ligne : renvoie uniquement ce qui est réellement lisible.
+- Si une donnée est illisible ou absente, renvoie "" plutôt que d'inventer.
+- N'invente JAMAIS de ligne : ne garde que ce qui ressemble réellement à un départ (il faut un n° de bus).
 - date : "AAAA-MM-JJ" ; si absente, null.`
 }
 
@@ -97,7 +99,7 @@ function normalizeDeparture(d: unknown) {
   return {
     axis: str(o.axis),
     busNumber,
-    departureTime: str(o.departureTime ?? o.departure_time ?? o.heure),
+    departureTime: normalizeTime(str(o.departureTime ?? o.departure_time ?? o.heure)),
     driverName: str(o.driverName ?? o.driver_name),
     driverPhone: str(o.driverPhone ?? o.driver_phone),
     backupDriver: str(o.backupDriver ?? o.backup_driver),
