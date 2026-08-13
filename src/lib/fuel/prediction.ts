@@ -4,7 +4,7 @@
 //   2. sinon le taux global de l'application (Admin › Itinéraires) ;
 //   3. sinon une valeur par défaut prudente, pour que la prédiction reste
 //      toujours opérationnelle même avant tout paramétrage.
-import type { Bus, FuelPrice, FuelType } from '@/lib/types'
+import type { Bus, Fueling, FuelPrice, FuelType } from '@/lib/types'
 import { computeAmount, latestPrice } from '@/lib/fuel/calculations'
 
 // Bus diesel type Yutong (valeur provisoire, ajustable dans Admin).
@@ -94,4 +94,47 @@ export function consumptionDeviation(
   const status: DeviationStatus =
     pct > OVERCONSUMPTION_THRESHOLD ? 'over' : pct < -OVERCONSUMPTION_THRESHOLD ? 'under' : 'normal'
   return { pct, status }
+}
+
+// Consommation RÉELLE par bus (L/100km), méthode plein-à-plein : entre deux
+// pleins successifs d'un même bus, distance = Δ odomètre, carburant = litres du
+// 2e plein. On agrège toutes les paires valides pour lisser les écarts.
+// Renvoie une Map bus_number (normalisé) → { l_per_100km, distanceKm, pairs }.
+export function realConsumptionByBus(
+  fuelings: Pick<Fueling, 'bus_number' | 'odometer_km' | 'liters' | 'date' | 'created_at'>[]
+): Map<string, { lPer100km: number; distanceKm: number; pairs: number }> {
+  const byBus = new Map<string, typeof fuelings>()
+  for (const f of fuelings) {
+    if (f.odometer_km == null) continue
+    const key = f.bus_number.toUpperCase().replace(/\s+/g, '')
+    if (!byBus.has(key)) byBus.set(key, [])
+    byBus.get(key)!.push(f)
+  }
+
+  const result = new Map<string, { lPer100km: number; distanceKm: number; pairs: number }>()
+  for (const [key, list] of byBus) {
+    const sorted = [...list].sort((a, b) =>
+      a.date === b.date ? a.created_at.localeCompare(b.created_at) : a.date.localeCompare(b.date)
+    )
+    let totalDist = 0
+    let totalLiters = 0
+    let pairs = 0
+    for (let i = 1; i < sorted.length; i++) {
+      const dist = Number(sorted[i].odometer_km) - Number(sorted[i - 1].odometer_km)
+      const liters = Number(sorted[i].liters)
+      if (dist > 0 && liters > 0) {
+        totalDist += dist
+        totalLiters += liters
+        pairs++
+      }
+    }
+    if (pairs > 0 && totalDist > 0) {
+      result.set(key, {
+        lPer100km: Math.round((totalLiters / totalDist) * 100 * 10) / 10,
+        distanceKm: totalDist,
+        pairs,
+      })
+    }
+  }
+  return result
 }

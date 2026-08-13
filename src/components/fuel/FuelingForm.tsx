@@ -21,6 +21,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
   const supabase = createClient()
   const [type, setType] = useState<FuelType>('diesel')
   const [liters, setLiters] = useState('')
+  const [odometer, setOdometer] = useState('')
   const [prices, setPrices] = useState<FuelPrice[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -105,6 +106,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
       amount,
       receipt_photo_paths: uploadedPaths,
       ...(uploadedPaths.length ? { receipt_photo_path: uploadedPaths[0] } : {}),
+      ...(odometer && Number(odometer) > 0 ? { odometer_km: Number(odometer) } : {}),
     })
     setBusy(false)
     if (error) {
@@ -139,17 +141,30 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
         ]}
       />
 
-      <Input
-        id="liters"
-        label="Quantité (litres)"
-        type="number"
-        step="0.5"
-        min="0"
-        inputMode="decimal"
-        placeholder="ex. 300"
-        value={liters}
-        onChange={(e) => setLiters(e.target.value)}
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          id="liters"
+          label="Quantité (litres)"
+          type="number"
+          step="0.5"
+          min="0"
+          inputMode="decimal"
+          placeholder="ex. 300"
+          value={liters}
+          onChange={(e) => setLiters(e.target.value)}
+        />
+        <Input
+          id="odometer"
+          label="Kilométrage (optionnel)"
+          type="number"
+          step="1"
+          min="0"
+          inputMode="numeric"
+          placeholder="ex. 152340"
+          value={odometer}
+          onChange={(e) => setOdometer(e.target.value)}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-50 p-3 text-sm">

@@ -11,8 +11,8 @@ const plannings: Planning[] = [
 
 // La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts")
 const fuelings: (Fueling & { receipt_photo_urls?: string[] })[] = [
-  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_path: '2026-08-06/f1.jpg', receipt_photo_paths: ['2026-08-06/f1.jpg'], receipt_photo_urls: ['https://ex.test/signed/receipts/f1.jpg'], recorded_by: null, created_at: '' },
-  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', receipt_photo_path: null, receipt_photo_paths: [], receipt_photo_urls: [], recorded_by: null, created_at: '' },
+  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, receipt_photo_path: '2026-08-06/f1.jpg', receipt_photo_paths: ['2026-08-06/f1.jpg'], receipt_photo_urls: ['https://ex.test/signed/receipts/f1.jpg'], odometer_km: null, recorded_by: null, created_at: '' },
+  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', receipt_photo_path: null, receipt_photo_paths: [], receipt_photo_urls: [], odometer_km: null, recorded_by: null, created_at: '' },
 ]
 
 describe('PlanningsList', () => {

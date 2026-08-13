@@ -5,6 +5,7 @@ import {
   resolveConsumptionRate,
   findBus,
   consumptionDeviation,
+  realConsumptionByBus,
   DEFAULT_CONSUMPTION_L_PER_100KM,
 } from '@/lib/fuel/prediction'
 
@@ -109,5 +110,33 @@ describe('consumptionDeviation', () => {
     expect(consumptionDeviation(100, null)).toBeNull()
     expect(consumptionDeviation(0, 100)).toBeNull()
     expect(consumptionDeviation(100, 0)).toBeNull()
+  })
+})
+
+describe('realConsumptionByBus', () => {
+  const f = (over: Partial<{ bus_number: string; odometer_km: number | null; liters: number; date: string; created_at: string }>) => ({
+    bus_number: 'CG 6377', odometer_km: null as number | null, liters: 0, date: '2026-08-01', created_at: '', ...over,
+  })
+
+  it('calcule la conso plein-à-plein (litres du 2e plein / Δ km × 100)', () => {
+    const readings = [
+      f({ odometer_km: 100000, liters: 300, date: '2026-08-01' }),
+      f({ odometer_km: 101000, liters: 300, date: '2026-08-05' }), // 300 L / 1000 km = 30
+      f({ odometer_km: 102000, liters: 300, date: '2026-08-10' }), // idem
+    ]
+    const map = realConsumptionByBus(readings)
+    expect(map.get('CG6377')?.lPer100km).toBe(30)
+    expect(map.get('CG6377')?.pairs).toBe(2)
+  })
+
+  it('ignore les bus sans odomètre et les paires incohérentes', () => {
+    const readings = [
+      f({ bus_number: 'BM 1', odometer_km: null, liters: 200 }),
+      f({ bus_number: 'BM 2', odometer_km: 5000, liters: 100, date: '2026-08-01' }),
+      f({ bus_number: 'BM 2', odometer_km: 4000, liters: 100, date: '2026-08-02' }), // recul → ignoré
+    ]
+    const map = realConsumptionByBus(readings)
+    expect(map.has('BM1')).toBe(false)
+    expect(map.has('BM2')).toBe(false)
   })
 })

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
+import { realConsumptionByBus } from '@/lib/fuel/prediction'
 import { Select, Input, EmptyState } from '@/components/ui'
 import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon } from '@/components/ui/icons'
 
@@ -26,6 +27,17 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
   const total = sumAmounts(filtered)
   const typeLabel = (t: string) => (t === 'diesel' ? 'Diesel' : 'Essence')
 
+  function downloadCsv(rows: (string | number)[][], name: string) {
+    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(';')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function exportCsv() {
     const header = ['Date', 'Bus', 'Chauffeur', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
     const rows = filtered.map((f) => [
@@ -38,16 +50,36 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
       String(f.amount),
       f.paid ? 'Payé' : 'Non payé',
     ])
-    const csv = [header, ...rows]
-      .map((r) => r.map((c) => `"${c}"`).join(';'))
-      .join('\n')
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `recus-${todayLocalISO()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsv([header, ...rows], `recus-${todayLocalISO()}.csv`)
+  }
+
+  // Synthèse agrégée par bus (nombre de pleins, litres et dépense totale).
+  function exportByBus() {
+    const byBus = new Map<string, { count: number; liters: number; amount: number }>()
+    for (const f of filtered) {
+      const agg = byBus.get(f.bus_number) ?? { count: 0, liters: 0, amount: 0 }
+      agg.count += 1
+      agg.liters += Number(f.liters)
+      agg.amount += f.amount
+      byBus.set(f.bus_number, agg)
+    }
+    // Consommation réelle (plein-à-plein) calculée sur tout l'historique fourni.
+    const realCons = realConsumptionByBus(fuelings)
+    const header = ['Bus', 'Nb pleins', 'Litres', 'Dépense (FCFA)', 'Conso réelle (L/100km)']
+    const rows = [...byBus.entries()]
+      .sort((a, b) => b[1].amount - a[1].amount)
+      .map(([bus, a]) => {
+        const key = bus.toUpperCase().replace(/\s+/g, '')
+        const rc = realCons.get(key)
+        return [
+          bus,
+          String(a.count),
+          String(Math.round(a.liters)),
+          String(Math.round(a.amount)),
+          rc ? String(rc.lPer100km) : '—',
+        ]
+      })
+    downloadCsv([header, ...rows], `synthese-par-bus-${todayLocalISO()}.csv`)
   }
 
   return (
@@ -86,14 +118,24 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
           </div>
         </div>
         {filtered.length > 0 ? (
-          <button
-            type="button"
-            onClick={exportCsv}
-            className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            <DownloadIcon size={16} />
-            Exporter CSV
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <DownloadIcon size={16} />
+              Exporter CSV
+            </button>
+            <button
+              type="button"
+              onClick={exportByBus}
+              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <DownloadIcon size={16} />
+              Synthèse par bus
+            </button>
+          </>
         ) : null}
       </div>
 

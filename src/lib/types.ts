@@ -72,6 +72,7 @@ export interface Fueling {
   paid_at: string | null
   receipt_photo_path: string | null
   receipt_photo_paths: string[]
+  odometer_km: number | null
   recorded_by: string | null
   created_at: string
 }

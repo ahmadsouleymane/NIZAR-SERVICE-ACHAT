@@ -66,6 +66,10 @@ export function DeparturesScreen() {
 
   const grandTotal = sumAmounts(fuelings)
   const pendingCount = fuelings.filter((f) => !f.paid).length
+  // Départs (hors REPOS) sans aucun plein enregistré : à traiter avant l'heure.
+  const missingFuel = departures.filter(
+    (d) => d.fuelings.length === 0 && !/repos/i.test(d.departure_time)
+  ).length
 
   return (
     <div className="space-y-6">
@@ -113,6 +117,15 @@ export function DeparturesScreen() {
           Tout payer
         </Button>
       </div>
+
+      {!loading && missingFuel > 0 ? (
+        <div role="status" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <WalletIcon size={18} className="shrink-0" />
+          <p>
+            <strong>{missingFuel} départ{missingFuel > 1 ? 's' : ''}</strong> sans plein enregistré — à faire avant l’heure de départ.
+          </p>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="space-y-3">
