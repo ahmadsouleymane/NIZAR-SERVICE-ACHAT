@@ -55,6 +55,20 @@ export function DashboardScreen() {
   }
   const maxWeek = Math.max(...week.map((w) => w.total), 1)
 
+  // Dépense par bus sur 30 jours (top consommateurs).
+  const byBus = new Map<string, { amount: number; liters: number }>()
+  for (const f of monthList) {
+    const agg = byBus.get(f.bus_number) ?? { amount: 0, liters: 0 }
+    agg.amount += f.amount
+    agg.liters += Number(f.liters)
+    byBus.set(f.bus_number, agg)
+  }
+  const busRanking = [...byBus.entries()]
+    .map(([bus, a]) => ({ bus, ...a }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 8)
+  const maxBus = Math.max(...busRanking.map((b) => b.amount), 1)
+
   const kpis = [
     { label: 'Dépense aujourd’hui', value: formatFcfa(todayTotal), icon: BanknotesIcon, tone: 'text-blue-700 bg-blue-50' },
     { label: 'Dépense ce mois', value: formatFcfa(monthTotal), icon: DropletIcon, tone: 'text-emerald-700 bg-emerald-50' },
@@ -113,6 +127,27 @@ export function DashboardScreen() {
               ))}
             </div>
           </div>
+
+          {busRanking.length > 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <h2 className="mb-4 text-base font-bold text-slate-900">Dépense par bus (30 jours)</h2>
+              <ul className="space-y-3">
+                {busRanking.map((b) => (
+                  <li key={b.bus} className="text-sm">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="font-semibold text-slate-800">{b.bus}</span>
+                      <span className="tabular text-slate-600">
+                        {formatFcfa(b.amount)} · {Math.round(b.liters)} L
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.max(3, (b.amount / maxBus) * 100)}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {pendingList.length > 0 ? (
             <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">

@@ -3,16 +3,22 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Bus, FuelType } from '@/lib/types'
+import { maintenanceStatus } from '@/lib/fuel/maintenance'
 import { Button, Input, Select, Card } from '@/components/ui'
 import { AlertIcon, TrashIcon, PencilIcon } from '@/components/ui/icons'
 
 interface Props {
   initialBuses: Bus[]
+  // Dernier odomètre relevé par bus (clé = n° bus sans espaces, en majuscules).
+  latestOdometer?: Record<string, number>
 }
 
-const emptyForm = { busNumber: '', label: '', fuelType: 'diesel' as FuelType, consumption: '', tank: '' }
+const emptyForm = {
+  busNumber: '', label: '', fuelType: 'diesel' as FuelType,
+  consumption: '', tank: '', interval: '', lastService: '',
+}
 
-export function BusesPanel({ initialBuses }: Props) {
+export function BusesPanel({ initialBuses, latestOdometer = {} }: Props) {
   const supabase = createClient()
   const [buses, setBuses] = useState<Bus[]>(initialBuses)
   const [form, setForm] = useState(emptyForm)
@@ -40,6 +46,8 @@ export function BusesPanel({ initialBuses }: Props) {
       fuelType: b.fuel_type,
       consumption: b.consumption_l_per_100km != null ? String(b.consumption_l_per_100km) : '',
       tank: b.tank_capacity_l != null ? String(b.tank_capacity_l) : '',
+      interval: b.service_interval_km != null ? String(b.service_interval_km) : '',
+      lastService: b.last_service_km != null ? String(b.last_service_km) : '',
     })
     setEditingKey(b.bus_number)
     setError('')
@@ -58,6 +66,14 @@ export function BusesPanel({ initialBuses }: Props) {
     if (tank != null && (!Number.isFinite(tank) || tank <= 0)) {
       setError('Capacité du réservoir invalide.'); return
     }
+    const interval = form.interval ? Number(form.interval) : null
+    if (interval != null && (!Number.isFinite(interval) || interval <= 0)) {
+      setError('Intervalle d’entretien invalide.'); return
+    }
+    const lastService = form.lastService ? Number(form.lastService) : null
+    if (lastService != null && (!Number.isFinite(lastService) || lastService < 0)) {
+      setError('Kilométrage du dernier entretien invalide.'); return
+    }
     setBusy(true)
     const payload = {
       bus_number: busNumber,
@@ -65,6 +81,8 @@ export function BusesPanel({ initialBuses }: Props) {
       fuel_type: form.fuelType,
       consumption_l_per_100km: consumption,
       tank_capacity_l: tank,
+      service_interval_km: interval,
+      last_service_km: lastService,
     }
     // upsert sur la clé primaire bus_number (création ou mise à jour).
     const { error } = await supabase.from('buses').upsert(payload)
@@ -138,6 +156,24 @@ export function BusesPanel({ initialBuses }: Props) {
             value={form.tank}
             onChange={(e) => setForm((f) => ({ ...f, tank: e.target.value }))}
           />
+          <Input
+            id="b-interval"
+            label="Entretien tous les (km)"
+            type="number"
+            min="0"
+            step="1000"
+            value={form.interval}
+            onChange={(e) => setForm((f) => ({ ...f, interval: e.target.value }))}
+          />
+          <Input
+            id="b-last-service"
+            label="Km au dernier entretien"
+            type="number"
+            min="0"
+            step="1"
+            value={form.lastService}
+            onChange={(e) => setForm((f) => ({ ...f, lastService: e.target.value }))}
+          />
         </div>
         <div className="flex gap-2">
           <Button type="submit" disabled={busy}>
@@ -156,14 +192,25 @@ export function BusesPanel({ initialBuses }: Props) {
           <p className="py-2 text-sm text-slate-500">Aucun bus enregistré. Ajoutez-en pour affiner la prédiction de carburant.</p>
         ) : (
           <ul className="divide-y divide-slate-100 text-sm">
-            {buses.map((b) => (
+            {buses.map((b) => {
+              const odo = latestOdometer[b.bus_number.toUpperCase().replace(/\s+/g, '')] ?? null
+              const maint = maintenanceStatus(b, odo)
+              return (
               <li key={b.bus_number} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
-                  <div className="font-semibold text-slate-900">{b.bus_number}{b.label ? ` · ${b.label}` : ''}</div>
+                  <div className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
+                    {b.bus_number}{b.label ? <span className="font-normal text-slate-500">· {b.label}</span> : null}
+                    {maint?.due ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-700">
+                        <AlertIcon size={11} /> Révision à prévoir
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="text-xs text-slate-500">
                     {fuelLabel(b.fuel_type)}
                     {b.consumption_l_per_100km != null ? ` · ${b.consumption_l_per_100km} L/100km` : ' · consommation non définie'}
                     {b.tank_capacity_l != null ? ` · réservoir ${b.tank_capacity_l} L` : ''}
+                    {maint != null ? ` · ${maint.kmSinceService.toLocaleString('fr-FR')} km depuis entretien (reste ${maint.kmRemaining.toLocaleString('fr-FR')} km)` : ''}
                   </div>
                 </div>
                 <span className="flex shrink-0 items-center gap-3">
@@ -175,7 +222,8 @@ export function BusesPanel({ initialBuses }: Props) {
                   </button>
                 </span>
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </Card>

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Bus, FuelPrice, Profile, RouteSegment } from '@/lib/types'
 import { parseConsumptionRate } from '@/lib/planning/route'
+import { latestOdometerByBus } from '@/lib/fuel/maintenance'
 import { DropletIcon, UsersIcon, BusIcon } from '@/components/ui/icons'
 import { PricesPanel } from '@/components/admin/PricesPanel'
 import { UsersPanel } from '@/components/admin/UsersPanel'
@@ -21,13 +22,18 @@ export default async function AdminPage() {
     return <p className="text-sm text-red-600">Accès réservé à l&apos;administrateur.</p>
   }
 
-  const [{ data: prices }, { data: profiles }, { data: segments }, { data: setting }, { data: buses }] = await Promise.all([
+  const [{ data: prices }, { data: profiles }, { data: segments }, { data: setting }, { data: buses }, { data: odoRows }] = await Promise.all([
     supabase.from('fuel_prices').select('*').order('effective_date'),
     supabase.from('profiles').select('*').order('full_name'),
     supabase.from('route_segments').select('*').order('city_a'),
     supabase.from('app_settings').select('*').eq('key', 'consumption_l_per_100km').maybeSingle(),
     supabase.from('buses').select('*').order('bus_number'),
+    supabase.from('fuelings').select('bus_number, odometer_km').not('odometer_km', 'is', null),
   ])
+
+  const latestOdometer = Object.fromEntries(
+    latestOdometerByBus((odoRows ?? []) as { bus_number: string; odometer_km: number | null }[])
+  )
 
   return (
     <div className="space-y-8">
@@ -49,7 +55,7 @@ export default async function AdminPage() {
           <BusIcon size={18} className="text-blue-600" />
           Bus & consommation
         </h2>
-        <BusesPanel initialBuses={(buses ?? []) as Bus[]} />
+        <BusesPanel initialBuses={(buses ?? []) as Bus[]} latestOdometer={latestOdometer} />
       </section>
 
       <section className="space-y-3">

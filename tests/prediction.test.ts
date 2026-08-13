@@ -15,6 +15,8 @@ const bus = (over: Partial<Bus> = {}): Bus => ({
   fuel_type: 'diesel',
   consumption_l_per_100km: 35,
   tank_capacity_l: null,
+  service_interval_km: null,
+  last_service_km: null,
   created_by: null,
   created_at: '',
   ...over,

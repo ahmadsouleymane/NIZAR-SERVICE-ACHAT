@@ -45,6 +45,8 @@ export interface Bus {
   fuel_type: FuelType
   consumption_l_per_100km: number | null
   tank_capacity_l: number | null
+  service_interval_km: number | null
+  last_service_km: number | null
   created_by: string | null
   created_at: string
 }
