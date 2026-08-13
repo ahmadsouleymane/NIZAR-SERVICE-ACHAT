@@ -19,9 +19,14 @@ export function latestPrice(prices: FuelPrice[], type: FuelType, onDate: string)
     (p) => p.fuel_type === type && p.effective_date <= onDate
   )
   if (candidates.length === 0) return null
-  const best = candidates.reduce((a, b) =>
-    a.effective_date > b.effective_date ? a : b
-  )
+  // Date d'effet la plus récente ; à date d'effet égale (prix corrigé le même
+  // jour), on retient la saisie la plus récente (created_at).
+  const best = candidates.reduce((a, b) => {
+    if (a.effective_date !== b.effective_date) {
+      return a.effective_date > b.effective_date ? a : b
+    }
+    return a.created_at >= b.created_at ? a : b
+  })
   return best.price
 }
 

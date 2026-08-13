@@ -115,11 +115,13 @@ export function ScanForm() {
         backup_phone: d.backupPhone || null,
       }))
     )
-    const { error: dErr } = await supabase.from('departures').insert(rows)
-    if (dErr) {
-      setError(dErr.message)
-      setBusy(false)
-      return
+    if (rows.length > 0) {
+      const { error: dErr } = await supabase.from('departures').insert(rows)
+      if (dErr) {
+        setError(dErr.message)
+        setBusy(false)
+        return
+      }
     }
     setBusy(false)
     setSuccess(true)
