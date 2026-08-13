@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { AlertIcon } from '@/components/ui/icons'
 import { Button, Input } from '@/components/ui'
+import { usernameToEmail } from '@/lib/auth/username'
 
 export function LoginForm() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -19,10 +20,13 @@ export function LoginForm() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password,
+    })
     setLoading(false)
     if (error) {
-      setError('Identifiants invalides. Vérifiez votre email et votre mot de passe.')
+      setError('Identifiants invalides. Vérifiez votre nom d’utilisateur et votre mot de passe.')
       return
     }
     router.push('/')
@@ -44,13 +48,15 @@ export function LoginForm() {
       </div>
 
       <Input
-        id="email"
-        label="Email"
-        type="email"
-        autoComplete="email"
+        id="username"
+        label="Nom d’utilisateur"
+        type="text"
+        autoComplete="username"
+        autoCapitalize="none"
+        spellCheck={false}
         required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
       />
       <Input
         id="password"

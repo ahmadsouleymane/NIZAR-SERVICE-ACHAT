@@ -19,14 +19,14 @@ export function UsersPanel({ initialProfiles }: Props) {
     setProfiles((data ?? []) as Profile[])
   }
 
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<Role>('achat')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const roleLabel = (r: Role) => (r === 'admin' ? 'Administrateur' : 'Service achat')
+  const roleLabel = (r: Role) => (r === 'admin' ? 'Administrateur' : 'Assistant')
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -35,7 +35,7 @@ export function UsersPanel({ initialProfiles }: Props) {
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, full_name: fullName, role }),
+      body: JSON.stringify({ username, password, full_name: fullName, role }),
     })
     setBusy(false)
     const body = await res.json()
@@ -43,7 +43,7 @@ export function UsersPanel({ initialProfiles }: Props) {
       setError(body.error ?? 'Erreur lors de la création.')
       return
     }
-    setEmail(''); setPassword(''); setFullName('')
+    setUsername(''); setPassword(''); setFullName('')
     await refresh()
   }
 
@@ -65,7 +65,18 @@ export function UsersPanel({ initialProfiles }: Props) {
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input id="u-name" label="Nom complet" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-          <Input id="u-email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input
+            id="u-username"
+            label="Nom d’utilisateur"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            minLength={3}
+            pattern="[A-Za-z0-9._\-]{3,32}"
+            title="3 à 32 caractères : lettres, chiffres, . _ -"
+          />
           <Input id="u-pass" label="Mot de passe" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           <Select
             id="u-role"
@@ -73,7 +84,7 @@ export function UsersPanel({ initialProfiles }: Props) {
             value={role}
             onChange={(e) => setRole(e.target.value as Role)}
             options={[
-              { value: 'achat', label: 'Service achat' },
+              { value: 'achat', label: 'Assistant' },
               { value: 'admin', label: 'Administrateur' },
             ]}
           />
@@ -101,7 +112,9 @@ export function UsersPanel({ initialProfiles }: Props) {
                   </span>
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-slate-900">{p.full_name || '—'}</div>
-                    <div className="text-xs text-slate-500">{roleLabel(p.role)}</div>
+                    <div className="truncate text-xs text-slate-500">
+                      {p.username ? `@${p.username} · ` : ''}{roleLabel(p.role)}
+                    </div>
                   </div>
                 </div>
                 <Select
@@ -110,7 +123,7 @@ export function UsersPanel({ initialProfiles }: Props) {
                   value={p.role}
                   onChange={(e) => changeRole(p.id, e.target.value as Role)}
                   options={[
-                    { value: 'achat', label: 'Service achat' },
+                    { value: 'achat', label: 'Assistant' },
                     { value: 'admin', label: 'Administrateur' },
                   ]}
                 />

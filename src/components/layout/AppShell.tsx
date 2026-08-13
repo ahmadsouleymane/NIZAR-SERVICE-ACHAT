@@ -24,7 +24,7 @@ function Brand() {
 }
 
 function roleLabel(role: Profile['role']) {
-  return role === 'admin' ? 'Administrateur' : 'Service achat'
+  return role === 'admin' ? 'Administrateur' : 'Assistant'
 }
 
 export function AppShell({ profile, children }: { profile: Profile; children: ReactNode }) {

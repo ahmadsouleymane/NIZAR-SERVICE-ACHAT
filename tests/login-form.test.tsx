@@ -26,7 +26,7 @@ describe('LoginForm', () => {
   it('affiche une erreur si la connexion échoue', async () => {
     mockSignIn.mockResolvedValue({ error: { message: 'Identifiants invalides' } })
     render(<LoginForm />)
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.c' } })
+    fireEvent.change(screen.getByLabelText(/nom d.utilisateur/i), { target: { value: 'admin' } })
     fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'x' } })
     fireEvent.click(screen.getByRole('button', { name: /se connecter/i }))
     await waitFor(() => expect(screen.getByText(/Identifiants invalides/)).toBeInTheDocument())
@@ -35,7 +35,7 @@ describe('LoginForm', () => {
   it('redirige vers la racine après succès', async () => {
     mockSignIn.mockResolvedValue({ error: null })
     render(<LoginForm />)
-    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.c' } })
+    fireEvent.change(screen.getByLabelText(/nom d.utilisateur/i), { target: { value: 'admin' } })
     fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'secret' } })
     fireEvent.click(screen.getByRole('button', { name: /se connecter/i }))
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
