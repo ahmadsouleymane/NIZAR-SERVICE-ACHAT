@@ -8,8 +8,8 @@ import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon } from '@/compone
 
 type Filter = 'all' | 'paid' | 'unpaid'
 
-// La page /recus fournit receipt_photo_url (URL signée du bucket privé "receipts")
-export type ReceiptsListFueling = Fueling & { receipt_photo_url?: string | null }
+// La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts")
+export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[] }
 
 export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
@@ -113,14 +113,16 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                 </div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {f.date} · {f.liters} L
-                  {f.receipt_photo_url ? (
-                    <>
-                      {' · '}
-                      <a href={f.receipt_photo_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        Voir le reçu
-                      </a>
-                    </>
-                  ) : null}
+                  {f.receipt_photo_urls?.length
+                    ? f.receipt_photo_urls.map((url, i) => (
+                        <span key={i}>
+                          {' · '}
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            {f.receipt_photo_urls!.length > 1 ? `Reçu ${i + 1}` : 'Voir le reçu'}
+                          </a>
+                        </span>
+                      ))
+                    : null}
                 </div>
               </div>
               <div className="flex shrink-0 flex-col items-end">

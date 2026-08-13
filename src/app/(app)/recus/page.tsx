@@ -3,21 +3,31 @@ import type { Fueling } from '@/lib/types'
 import { ReceiptIcon } from '@/components/ui/icons'
 import { ReceiptsList } from '@/components/history/ReceiptsList'
 
-export type ReceiptWithUrl = Fueling & { receipt_photo_url: string | null }
+export type ReceiptWithUrl = Fueling & { receipt_photo_urls: string[] }
 
 export default async function RecusPage() {
   const supabase = await createClient()
   const { data } = await supabase.from('fuelings').select('*').order('created_at', { ascending: false })
 
   // Le bucket "receipts" est privé : on génère une URL signée (1 h) pour chaque
-  // reçu, affichable dans le navigateur sans exposer la ressource publiquement.
+  // photo de reçu (plusieurs possibles), sans exposer la ressource publiquement.
   const fuelings: ReceiptWithUrl[] = await Promise.all(
     (data ?? []).map(async (f) => {
-      if (!f.receipt_photo_path) return { ...f, receipt_photo_url: null }
-      const { data: signed } = await supabase.storage
-        .from('receipts')
-        .createSignedUrl(f.receipt_photo_path, 3600)
-      return { ...f, receipt_photo_url: signed?.signedUrl ?? null }
+      const paths: string[] =
+        f.receipt_photo_paths?.length
+          ? f.receipt_photo_paths
+          : f.receipt_photo_path
+            ? [f.receipt_photo_path]
+            : []
+      const urls = (
+        await Promise.all(
+          paths.map(async (p: string) => {
+            const { data: signed } = await supabase.storage.from('receipts').createSignedUrl(p, 3600)
+            return signed?.signedUrl ?? null
+          })
+        )
+      ).filter((u): u is string => u !== null)
+      return { ...f, receipt_photo_urls: urls }
     })
   )
 

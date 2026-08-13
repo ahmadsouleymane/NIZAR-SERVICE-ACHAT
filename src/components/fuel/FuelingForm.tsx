@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { DepartureWithFuel, FuelPrice, FuelType } from '@/lib/types'
 import { computeAmount, formatFcfa, latestPrice, sumAmounts, todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input, Select } from '@/components/ui'
-import { CameraIcon, UploadIcon, DropletIcon, AlertIcon, BanknotesIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, DropletIcon, AlertIcon, BanknotesIcon, TrashIcon } from '@/components/ui/icons'
 
 interface Props {
   departure: DepartureWithFuel
@@ -19,9 +19,22 @@ export function FuelingForm({ departure, onSaved }: Props) {
   const [prices, setPrices] = useState<FuelPrice[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [receiptPhoto, setReceiptPhoto] = useState<File | null>(null)
+  const [receiptPhotos, setReceiptPhotos] = useState<File[]>([])
   const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
+
+  const receiptPreviews = useMemo(() => receiptPhotos.map((f) => URL.createObjectURL(f)), [receiptPhotos])
+  useEffect(() => () => { receiptPreviews.forEach((u) => URL.revokeObjectURL(u)) }, [receiptPreviews])
+
+  function addReceipts(fileList: FileList | null, input: HTMLInputElement | null) {
+    const added = Array.from(fileList ?? [])
+    if (added.length > 0) setReceiptPhotos((prev) => [...prev, ...added])
+    if (input) input.value = ''
+  }
+
+  function removeReceipt(index: number) {
+    setReceiptPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
 
   useEffect(() => {
     supabase.from('fuel_prices').select('*').order('effective_date').then(({ data }) => setPrices((data ?? []) as FuelPrice[]))
@@ -46,16 +59,18 @@ export function FuelingForm({ departure, onSaved }: Props) {
     }
     setBusy(true)
 
-    let uploadPath: string | null = null
-    if (receiptPhoto) {
+    const uploadedPaths: string[] = []
+    for (const photo of receiptPhotos) {
       const path = `${today}/${crypto.randomUUID()}.jpg`
-      uploadPath = path
-      const { error: upErr } = await supabase.storage.from('receipts').upload(path, receiptPhoto)
+      const { error: upErr } = await supabase.storage.from('receipts').upload(path, photo)
       if (upErr) {
+        // Nettoie les reçus déjà envoyés avant d'abandonner.
+        if (uploadedPaths.length) await supabase.storage.from('receipts').remove(uploadedPaths)
         setError(`Upload du reçu impossible : ${upErr.message}`)
         setBusy(false)
         return
       }
+      uploadedPaths.push(path)
     }
 
     const { error } = await supabase.from('fuelings').insert({
@@ -67,11 +82,12 @@ export function FuelingForm({ departure, onSaved }: Props) {
       liters: l,
       unit_price: unitPrice,
       amount,
-      ...(uploadPath ? { receipt_photo_path: uploadPath } : {}),
+      receipt_photo_paths: uploadedPaths,
+      ...(uploadedPaths.length ? { receipt_photo_path: uploadedPaths[0] } : {}),
     })
     setBusy(false)
     if (error) {
-      if (uploadPath) await supabase.storage.from('receipts').remove([uploadPath])
+      if (uploadedPaths.length) await supabase.storage.from('receipts').remove(uploadedPaths)
       setError(error.message)
       return
     }
@@ -136,7 +152,7 @@ export function FuelingForm({ departure, onSaved }: Props) {
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-semibold text-slate-700">Photo du reçu (optionnel)</p>
+        <p className="mb-2 text-sm font-semibold text-slate-700">Photos du reçu (optionnel, plusieurs possibles)</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -155,13 +171,34 @@ export function FuelingForm({ departure, onSaved }: Props) {
             Galerie
           </button>
         </div>
-        {receiptPhoto ? <p className="mt-2 text-xs text-slate-500">{receiptPhoto.name}</p> : null}
+        {receiptPhotos.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {receiptPhotos.map((_, i) => (
+              <div key={i} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={receiptPreviews[i]}
+                  alt={`Reçu ${i + 1}`}
+                  className="h-16 w-16 rounded-lg border border-slate-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeReceipt(i)}
+                  aria-label={`Supprimer le reçu ${i + 1}`}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white shadow"
+                >
+                  <TrashIcon size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <input
           ref={cameraRef}
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={(e) => setReceiptPhoto(e.target.files?.[0] ?? null)}
+          onChange={(e) => addReceipts(e.target.files, e.currentTarget)}
           className="hidden"
         />
         <input
@@ -169,7 +206,8 @@ export function FuelingForm({ departure, onSaved }: Props) {
           data-testid="receipt-photo-input"
           type="file"
           accept="image/*"
-          onChange={(e) => setReceiptPhoto(e.target.files?.[0] ?? null)}
+          multiple
+          onChange={(e) => addReceipts(e.target.files, e.currentTarget)}
           className="hidden"
         />
       </div>

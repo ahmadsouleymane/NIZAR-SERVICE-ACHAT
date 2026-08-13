@@ -1,13 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
 import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
 import { ocrImageToLines } from '@/lib/planning/ocr'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
-import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon, TrashIcon } from '@/components/ui/icons'
 import { PreviewTable } from './PreviewTable'
 
 export function ScanForm() {
@@ -23,11 +23,31 @@ export function ScanForm() {
   const [done, setDone] = useState(false)
   const [success, setSuccess] = useState(false)
 
+  // Vignettes de prévisualisation (URL objet révoquées à chaque changement).
+  const previews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos])
+  useEffect(() => () => { previews.forEach((u) => URL.revokeObjectURL(u)) }, [previews])
+
   function reset() {
     setPreview(null)
     setPhotos([])
     setDone(false)
     setSuccess(false)
+    setError('')
+  }
+
+  // Ajoute les photos sélectionnées SANS écraser les précédentes (multi-photos).
+  function addPhotos(fileList: FileList | null, input: HTMLInputElement | null) {
+    const added = Array.from(fileList ?? [])
+    if (added.length > 0) {
+      setPhotos((prev) => [...prev, ...added])
+      setSuccess(false)
+    }
+    // Réinitialise l'input pour pouvoir reprendre/ajouter la même source.
+    if (input) input.value = ''
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
     setError('')
   }
 
@@ -180,7 +200,7 @@ export function ScanForm() {
               <CameraIcon size={24} />
             </span>
             <span className="text-sm font-semibold text-slate-800">Prendre une photo</span>
-            <span className="text-xs text-slate-500">Appareil photo du téléphone</span>
+            <span className="text-xs text-slate-500">Une ou plusieurs, l’une après l’autre</span>
           </button>
           <button
             type="button"
@@ -190,7 +210,7 @@ export function ScanForm() {
             <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
               <UploadIcon size={24} />
             </span>
-            <span className="text-sm font-semibold text-slate-800">Ajouter une image</span>
+            <span className="text-sm font-semibold text-slate-800">Ajouter des images</span>
             <span className="text-xs text-slate-500">Depuis les photos du téléphone</span>
           </button>
         </div>
@@ -199,7 +219,7 @@ export function ScanForm() {
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
+          onChange={(e) => addPhotos(e.target.files, e.currentTarget)}
           className="hidden"
         />
         <input
@@ -208,27 +228,42 @@ export function ScanForm() {
           type="file"
           accept="image/*"
           multiple
-          onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
+          onChange={(e) => addPhotos(e.target.files, e.currentTarget)}
           className="hidden"
         />
       </div>
 
       {photos.length > 0 ? (
         <div className="space-y-2">
+          <p className="text-sm font-semibold text-slate-700">
+            {photos.length} photo{photos.length > 1 ? 's' : ''} prête{photos.length > 1 ? 's' : ''} — vérifiez avant de lancer la lecture
+          </p>
           {photos.map((photo, i) => (
-            <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
-              <span className="flex min-w-0 items-center gap-2">
-                <CameraIcon size={18} className="shrink-0 text-slate-500" />
-                Photo {i + 1}
-              </span>
+            <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-100 px-3 py-2.5 text-sm text-slate-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previews[i]}
+                alt={`Aperçu photo ${i + 1}`}
+                className="h-14 w-14 shrink-0 rounded-lg border border-slate-200 object-cover"
+              />
+              <span className="min-w-0 flex-1 font-medium">Photo {i + 1}</span>
               <button
                 type="button"
                 onClick={() => rotatePhoto(i)}
                 disabled={busy}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-50"
               >
                 <RotateIcon size={14} />
-                Tourner 90°
+                Tourner
+              </button>
+              <button
+                type="button"
+                onClick={() => removePhoto(i)}
+                disabled={busy}
+                aria-label={`Supprimer la photo ${i + 1}`}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+              >
+                <TrashIcon size={14} />
               </button>
             </div>
           ))}

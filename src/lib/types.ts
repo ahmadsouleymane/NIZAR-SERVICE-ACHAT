@@ -61,6 +61,7 @@ export interface Fueling {
   paid: boolean
   paid_at: string | null
   receipt_photo_path: string | null
+  receipt_photo_paths: string[]
   recorded_by: string | null
   created_at: string
 }
