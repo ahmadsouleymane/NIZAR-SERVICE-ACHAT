@@ -9,7 +9,9 @@ interface Props {
   onChange: (p: ParsedPlanning) => void
 }
 
-const cellClass = 'h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none'
+// Les inputs s'ajustent à la taille de leur contenu (field-sizing: content) :
+// on voit l'ensemble des données et on peut les corriger. min-w fixe un minimum.
+const cellClass = 'h-10 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none [field-sizing:content] min-w-24'
 
 export function PreviewTable({ planning, onChange }: Props) {
   function updateRow(sectionIdx: number, rowIdx: number, field: keyof ParsedPlanning['sections'][number]['departures'][number], value: string) {
@@ -50,25 +52,25 @@ export function PreviewTable({ planning, onChange }: Props) {
                 {section.departures.map((d, ri) => (
                   <tr key={ri} className="border-b border-slate-100 last:border-b-0">
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} min-w-44`} value={d.axis} onChange={(e) => updateRow(si, ri, 'axis', e.target.value)} />
+                      <input className={`${cellClass} min-w-60`} value={d.axis} onChange={(e) => updateRow(si, ri, 'axis', e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} w-24`} value={d.busNumber} onChange={(e) => updateRow(si, ri, 'busNumber', e.target.value)} />
+                      <input className={`${cellClass} min-w-28`} value={d.busNumber} onChange={(e) => updateRow(si, ri, 'busNumber', e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} w-20`} value={d.departureTime} onChange={(e) => updateRow(si, ri, 'departureTime', e.target.value)} />
+                      <input className={`${cellClass} min-w-24`} value={d.departureTime} onChange={(e) => updateRow(si, ri, 'departureTime', e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} min-w-36`} value={d.driverName} onChange={(e) => updateRow(si, ri, 'driverName', e.target.value)} />
+                      <input className={`${cellClass} min-w-44`} value={d.driverName} onChange={(e) => updateRow(si, ri, 'driverName', e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} w-28`} value={d.driverPhone} onChange={(e) => updateRow(si, ri, 'driverPhone', e.target.value)} />
+                      <input className={`${cellClass} min-w-28`} value={d.driverPhone} onChange={(e) => updateRow(si, ri, 'driverPhone', e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} min-w-28`} value={d.backupDriver || '—'} onChange={(e) => updateRow(si, ri, 'backupDriver', e.target.value === '—' ? '' : e.target.value)} />
+                      <input className={`${cellClass} min-w-40`} value={d.backupDriver || '—'} onChange={(e) => updateRow(si, ri, 'backupDriver', e.target.value === '—' ? '' : e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input className={`${cellClass} w-28`} value={d.backupPhone || '—'} onChange={(e) => updateRow(si, ri, 'backupPhone', e.target.value === '—' ? '' : e.target.value)} />
+                      <input className={`${cellClass} min-w-28`} value={d.backupPhone || '—'} onChange={(e) => updateRow(si, ri, 'backupPhone', e.target.value === '—' ? '' : e.target.value)} />
                     </td>
                     <td className="px-3 py-1.5">
                       <Button variant="ghost" type="button" onClick={() => removeRow(si, ri)} aria-label={`Supprimer la ligne ${ri + 1}`}>

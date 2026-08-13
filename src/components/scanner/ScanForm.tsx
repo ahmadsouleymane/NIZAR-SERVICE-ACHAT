@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
-import { parsePlanning, type ParsedPlanning, type OcrLine } from '@/lib/planning/parse'
+import { type ParsedPlanning, type OcrLine } from '@/lib/planning/parse'
 import { ocrImageToLines } from '@/lib/planning/ocr'
 import { serializeOcrLines } from '@/lib/planning/ai'
 import { todayLocalISO } from '@/lib/fuel/calculations'
@@ -69,35 +69,8 @@ export function ScanForm() {
     }
   }
 
-  async function handleScan() {
-    setError('')
-    if (photos.length === 0) {
-      setError('Ajoutez au moins une photo du planning.')
-      return
-    }
-    setBusy(true)
-    try {
-      let date: string | null = null
-      const sections: ParsedPlanning['sections'] = []
-      for (const photo of photos) {
-        // OCR 100% local (Tesseract.js) : aucun serveur, aucun coût.
-        const prepared = await prepareImage(photo)
-        const lines = await ocrImageToLines(prepared)
-        const parsed = parsePlanning(lines)
-        if (parsed.date) date = parsed.date
-        sections.push(...parsed.sections)
-      }
-      setPreview({ date, sections })
-      setDone(true)
-    } catch {
-      setError('Impossible de lire la photo sur cet appareil. Vérifiez votre connexion internet (première utilisation) et réessayez.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  // Lecture « IA » : Tesseract fait l'OCR local, puis DeepSeek (texte) corrige
-  // et structure le résultat en JSON. Repli possible sur la lecture classique.
+  // Lecture IA : Tesseract fait l'OCR local, puis DeepSeek (texte) corrige
+  // et structure le résultat en JSON.
   async function handleAiScan() {
     setError('')
     if (photos.length === 0) {
@@ -315,19 +288,13 @@ export function ScanForm() {
         </p>
       ) : null}
 
-      <div className="space-y-2">
-        <Button onClick={handleScan} disabled={busy || aiBusy} className="w-full">
-          <CameraIcon size={18} />
-          {busy ? 'Lecture de la photo…' : 'Lire le planning'}
-        </Button>
-        <Button onClick={handleAiScan} disabled={busy || aiBusy} variant="secondary" className="w-full">
-          <SearchIcon size={18} />
-          {aiBusy ? 'Lecture IA…' : 'Lire avec l’IA (optionnel)'}
-        </Button>
-        <p className="text-center text-[11px] text-slate-400">
-          IA : l’OCR est corrigé et structuré par DeepSeek (coût minime). En cas d’échec, la lecture classique reste disponible.
-        </p>
-      </div>
+      <Button onClick={handleAiScan} disabled={aiBusy} className="w-full !min-h-14 !text-base">
+        <SearchIcon size={20} />
+        {aiBusy ? 'Lecture en cours…' : 'Scanner le planning'}
+      </Button>
+      <p className="text-center text-[11px] text-slate-400">
+        Lecture assistée par IA (DeepSeek) : les données sont lues et corrigées automatiquement.
+      </p>
     </div>
   )
 }
