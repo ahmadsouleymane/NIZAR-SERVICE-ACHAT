@@ -42,6 +42,14 @@ describe('detectSectionHeader', () => {
     const l = line(0, 0, [w('DEPART'), w('TITULAIRE'), w('SUPPLEAN'), w('TITULAIRE'), w('SUPPLEANT')])
     expect(detectSectionHeader(l)).toBeNull()
   })
+  it('ignore « DEPART IITULIAIRE » (OCR de TITULAIRE)', () => {
+    const l = line(0, 0, [w('DEPART'), w('IITULIAIRE'), w('SUPPLEANT'), w('TELEPHONE')])
+    expect(detectSectionHeader(l)).toBeNull()
+  })
+  it('ignore « DEPART HEURE CHAUFFEUR TEL » (en-tête de colonnes)', () => {
+    const l = line(0, 0, [w('DEPART'), w('HEURE'), w('CHAUFFEUR'), w('TEL'), w('SUPPLEANT')])
+    expect(detectSectionHeader(l)).toBeNull()
+  })
 })
 
 describe('classifyRow', () => {
@@ -124,6 +132,34 @@ describe('classifyRow', () => {
     const row = classifyRow(l)
     expect(row!.departureTime).toBe('NUIT')
     expect(row!.driverName).toBe('MANSOUR')
+  })
+
+  it('nettoie les résidus (-NEANT, tiret) et normalise le n° de bus', () => {
+    const l = line(0, 0, [
+      w('INGAL'), w('-'), w('AGADEZ'),
+      w('BM5856'),
+      w('05'), w('H'), w('00'),
+      w('ABDOUL'), w('AZIZ'), w('-NEANT'), w('_'),
+      w('96656496'),
+    ])
+    const row = classifyRow(l)
+    expect(row!.axis).toBe('INGAL - AGADEZ')
+    expect(row!.busNumber).toBe('BM 5856')
+    expect(row!.driverName).toBe('ABDOUL AZIZ')
+    expect(row!.backupDriver).toBe('')
+  })
+
+  it('normalise un axe collé sans espaces autour des tirets', () => {
+    const l = line(0, 0, [
+      w('ZINDER-LOGA-NIAMEYSPECIAL'),
+      w('CG6326'),
+      w('04'), w('H'), w('00'),
+      w('LASSO'),
+      w('96967532'),
+    ])
+    const row = classifyRow(l)
+    expect(row!.busNumber).toBe('CG 6326')
+    expect(row!.driverName).toBe('LASSO')
   })
 })
 

@@ -10,13 +10,24 @@ export function normalizeCityName(s: string): string {
 
 export function parseRoute(axis: string): string[] {
   return axis
-    .split(' - ')
+    .split('-')
     .map((part) =>
       part
         .split(/\s+/)
+        .map((tok) => tok.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
         .filter((tok) => tok.length > 0 && !ROUTE_STOPWORDS.has(tok.toUpperCase()))
         .join(' ')
     )
+    .map((part) => part.trim())
+    .map((part) => {
+      // Retire un qualificatif collé à la dernière ville sans espace,
+      // ex. « NIAMEYENCOUR » → « NIAMEY », « NIAMEYSPECIAL » → « NIAMEY ».
+      let out = part
+      for (const sw of ROUTE_STOPWORDS) {
+        if (out.toUpperCase().endsWith(sw)) out = out.slice(0, -sw.length).trim()
+      }
+      return out
+    })
     .map((part) => normalizeCityName(part))
     .filter((part) => part.length > 0)
 }

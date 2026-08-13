@@ -40,6 +40,44 @@ const DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/
 const HEADER_SKIP_RE = /^(axe|axes|n°|num|heure|chauffeur|tel|télé|depart)/i
 const NEANT_RE = /^(NEANT|NÉANT)$/i
 
+// Mots de l'en-tête du tableau (jamais des villes) : une ligne « DEPART X » qui
+// en contient un est un en-tête de colonne, pas un début de section.
+const HEADER_WORDS = ['TITULAIRE', 'SUPPLEANT', 'SUPPLEMENTAIRE', 'SUPPLÉANT', 'HEURE', 'CHAUFFEUR', 'TELEPHONE', 'TÉLÉPHONE', 'NUMERO']
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length
+  const n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  let prev = Array.from({ length: n + 1 }, (_, j) => j)
+  for (let i = 1; i <= m; i++) {
+    const cur = [i]
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1)
+      )
+    }
+    prev = cur
+  }
+  return prev[n]
+}
+
+// Ville de section ressemblant à un mot d'en-tête (tolère les erreurs OCR :
+// « IITULIAIRE » ≈ « TITULAIRE »).
+function isHeaderCity(city: string): boolean {
+  return HEADER_WORDS.some((h) => levenshtein(city, h) <= 2)
+}
+
+// Nettoie un token OCR : retire traits/soulignés/tirets aux extrémités
+// (« -NEANT » → « NEANT »), mais conserve le séparateur d'axe (« - », « — »).
+function cleanToken(t: string): string {
+  const trimmed = t.trim()
+  if (/^[-—–]$/.test(trimmed)) return trimmed
+  return trimmed.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+}
+
 export function lineText(line: OcrLine): string {
   return line.tokens.map((t) => t.text).join(' ').trim()
 }
@@ -63,13 +101,14 @@ export function detectSectionHeader(line: OcrLine): string | null {
   if (!m) return null
   const city = m[1].toUpperCase()
   // ignore la 2e ligne d'en-tête du tableau (« DEPART » sous la colonne HEURE)
-  if (/^(TITULAIRE|SUPPLEANT?|HEURE|BUS|AXES?)$/.test(city)) return null
+  if (isHeaderCity(city)) return null
+  if (HEADER_WORDS.some((hw) => text.toUpperCase().includes(hw))) return null
   return city
 }
 
 export function originOf(axis: string): string {
-  const first = axis.split(' - ')[0].trim()
-  return first.toUpperCase() || 'Autre'
+  const parts = axis.split(/\s*[-—–]\s*/).map((s) => s.trim()).filter(Boolean)
+  return (parts[0] ?? 'Autre').toUpperCase()
 }
 
 function findBus(tokens: OcrToken[]): { bus: string; start: number; end: number } | null {
@@ -90,13 +129,18 @@ function findBus(tokens: OcrToken[]): { bus: string; start: number; end: number 
 }
 
 export function classifyRow(line: OcrLine): ParsedDeparture | null {
-  const tokens = [...line.tokens].sort((a, b) => a.x0 - b.x0)
+  const tokens = line.tokens
+    .map((t) => ({ ...t, text: cleanToken(t.text) }))
+    .filter((t) => t.text.length > 0)
+    .sort((a, b) => a.x0 - b.x0)
   const joined = lineText({ tokens, y: line.y })
   if (HEADER_SKIP_RE.test(joined.trim())) return null
   if (joined.replace(/[^\p{L}\p{N}]/gu, '').trim().length === 0) return null
 
   const bus = findBus(tokens)
   if (!bus) return null
+  // N° de bus normalisé : « CG6326 » → « CG 6326 » (matching prédiction + affichage).
+  const busNumber = bus.bus.replace(/^([A-Z]{2})\s?(\d{3,4})$/, '$1 $2')
 
   // Colonne 1 — AXE (tout ce qui est avant le n° de bus)
   const axis = tokens.slice(0, bus.start).map((t) => t.text).join(' ').trim()
@@ -141,7 +185,7 @@ export function classifyRow(line: OcrLine): ParsedDeparture | null {
 
   return {
     axis,
-    busNumber: bus.bus,
+    busNumber,
     departureTime,
     driverName,
     driverPhone: phoneT,
@@ -181,5 +225,6 @@ export function parsePlanning(lines: OcrLine[]): ParsedPlanning {
       current.departures.push(row)
     }
   }
-  return { date, sections }
+  // On retire les sections sans départ (en-têtes isolés, « 0 ligne »).
+  return { date, sections: sections.filter((s) => s.departures.length > 0) }
 }

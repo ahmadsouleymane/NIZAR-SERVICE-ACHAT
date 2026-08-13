@@ -31,6 +31,18 @@ describe('parseRoute', () => {
   it('réduit ARLIT - REPOS à la seule ville de départ', () => {
     expect(parseRoute('ARLIT - REPOS')).toEqual(['ARLIT'])
   })
+  it('découpe un axe collé sans espaces et retire SPECIAL collé', () => {
+    expect(parseRoute('ZINDER-LOGA-NIAMEYSPECIAL')).toEqual(['ZINDER', 'LOGA', 'NIAMEY'])
+  })
+  it('découpe AGADEZ-NIAMEYENCOUR (qualificatif collé)', () => {
+    expect(parseRoute('AGADEZ-NIAMEYENCOUR')).toEqual(['AGADEZ', 'NIAMEY'])
+  })
+  it('ignore un tiret de tête et découpe DOUTCHI-BAGAROUA', () => {
+    expect(parseRoute('— DOUTCHI-BAGAROUA')).toEqual(['DOUTCHI', 'BAGAROUA'])
+  })
+  it('découpe un axe sans espaces simple', () => {
+    expect(parseRoute('INGAL-AGADEZ')).toEqual(['INGAL', 'AGADEZ'])
+  })
   it('retire NUIT même en position de ville', () => {
     expect(parseRoute('NUIT - GAYA')).toEqual(['GAYA'])
   })

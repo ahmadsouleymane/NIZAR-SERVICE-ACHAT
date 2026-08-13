@@ -48,7 +48,7 @@ interface LineLike {
 // Caractères parasites que Tesseract colle parfois aux mots (traits du tableau,
 // ponctuation) : « 96474717] » → « 96474717 », « |05H00 » → « 05H00 ».
 // On retire uniquement en début/fin de mot, jamais le « - » intérieur des axes.
-const EDGE_JUNK_RE = /^[\s"'`[\]{}()!?;,:.|/\\]+|[\s"'`[\]{}()!?;,:.|/\\]+$/g
+const EDGE_JUNK_RE = /^[\s"'`[\]{}()!?;,:.|/\\—_\-]+|[\s"'`[\]{}()!?;,:.|/\\—_\-]+$/g
 
 function cleanTokenText(text: string): string {
   return text.replace(EDGE_JUNK_RE, '').trim()
