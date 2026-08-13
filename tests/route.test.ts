@@ -25,6 +25,12 @@ describe('parseRoute', () => {
   it('retire le suffixe SPECIAL collé à la dernière ville', () => {
     expect(parseRoute('AGADEZ - NIAMEY SPECIAL')).toEqual(['AGADEZ', 'NIAMEY'])
   })
+  it('retire le qualificatif ENCOUR (service, pas une ville)', () => {
+    expect(parseRoute('AGADEZ - NIAMEY ENCOUR')).toEqual(['AGADEZ', 'NIAMEY'])
+  })
+  it('réduit ARLIT - REPOS à la seule ville de départ', () => {
+    expect(parseRoute('ARLIT - REPOS')).toEqual(['ARLIT'])
+  })
   it('retire NUIT même en position de ville', () => {
     expect(parseRoute('NUIT - GAYA')).toEqual(['GAYA'])
   })

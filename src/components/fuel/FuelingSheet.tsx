@@ -1,6 +1,6 @@
 'use client'
 
-import type { DepartureWithFuel } from '@/lib/types'
+import type { Bus, DepartureWithFuel, RouteSegment } from '@/lib/types'
 import { XIcon } from '@/components/ui/icons'
 import { FuelingForm } from './FuelingForm'
 
@@ -8,9 +8,12 @@ interface Props {
   departure: DepartureWithFuel
   onClose: () => void
   onSaved: () => void
+  segments?: RouteSegment[]
+  buses?: Bus[]
+  consumptionRate?: number | null
 }
 
-export function FuelingSheet({ departure, onClose, onSaved }: Props) {
+export function FuelingSheet({ departure, onClose, onSaved, segments = [], buses = [], consumptionRate = null }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-[2px] sm:items-center sm:p-4"
@@ -34,7 +37,13 @@ export function FuelingSheet({ departure, onClose, onSaved }: Props) {
             <XIcon size={20} />
           </button>
         </div>
-        <FuelingForm departure={departure} onSaved={onSaved} />
+        <FuelingForm
+          departure={departure}
+          onSaved={onSaved}
+          segments={segments}
+          buses={buses}
+          consumptionRate={consumptionRate}
+        />
       </div>
     </div>
   )

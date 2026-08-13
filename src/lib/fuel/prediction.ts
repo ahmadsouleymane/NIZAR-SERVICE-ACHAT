@@ -70,3 +70,28 @@ export function predictFuel(input: FuelPredictionInput): FuelPrediction {
 
   return { distanceKm, liters, cost, fuelType, ratePer100km: rate, rateSource: source }
 }
+
+// Détection de surconsommation : au-delà de +15 % vs la prévision, on alerte
+// (trajet anormal, fuite ou détournement de carburant). En dessous de -15 %,
+// on signale une consommation inhabituellement basse (à vérifier).
+export const OVERCONSUMPTION_THRESHOLD = 0.15
+
+export type DeviationStatus = 'over' | 'normal' | 'under'
+
+export function consumptionDeviation(
+  actualLiters: number,
+  predictedLiters: number | null
+): { pct: number; status: DeviationStatus } | null {
+  if (
+    predictedLiters == null ||
+    predictedLiters <= 0 ||
+    !Number.isFinite(actualLiters) ||
+    actualLiters <= 0
+  ) {
+    return null
+  }
+  const pct = (actualLiters - predictedLiters) / predictedLiters
+  const status: DeviationStatus =
+    pct > OVERCONSUMPTION_THRESHOLD ? 'over' : pct < -OVERCONSUMPTION_THRESHOLD ? 'under' : 'normal'
+  return { pct, status }
+}

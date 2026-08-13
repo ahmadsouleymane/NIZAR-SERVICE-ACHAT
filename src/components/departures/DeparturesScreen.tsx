@@ -132,6 +132,9 @@ export function DeparturesScreen() {
         <FuelingSheet
           departure={selected}
           onClose={() => setSelected(null)}
+          segments={segments}
+          buses={buses}
+          consumptionRate={consumptionRate}
           onSaved={() => {
             setSelected(null)
             load(date)

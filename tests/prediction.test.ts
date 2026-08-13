@@ -4,6 +4,7 @@ import {
   predictFuel,
   resolveConsumptionRate,
   findBus,
+  consumptionDeviation,
   DEFAULT_CONSUMPTION_L_PER_100KM,
 } from '@/lib/fuel/prediction'
 
@@ -90,5 +91,23 @@ describe('predictFuel', () => {
     expect(p.liters).toBe(30) // 100 * 30(défaut) / 100
     expect(p.cost).toBeNull()
     expect(p.rateSource).toBe('default')
+  })
+})
+
+describe('consumptionDeviation', () => {
+  it('signale une surconsommation au-delà de +15 %', () => {
+    expect(consumptionDeviation(120, 100)?.status).toBe('over') // +20 %
+  })
+  it('considère normal un écart dans les ±15 %', () => {
+    expect(consumptionDeviation(110, 100)?.status).toBe('normal') // +10 %
+    expect(consumptionDeviation(90, 100)?.status).toBe('normal') // -10 %
+  })
+  it('signale une consommation anormalement basse sous -15 %', () => {
+    expect(consumptionDeviation(80, 100)?.status).toBe('under') // -20 %
+  })
+  it('renvoie null si la prévision est absente ou les litres invalides', () => {
+    expect(consumptionDeviation(100, null)).toBeNull()
+    expect(consumptionDeviation(0, 100)).toBeNull()
+    expect(consumptionDeviation(100, 0)).toBeNull()
   })
 })

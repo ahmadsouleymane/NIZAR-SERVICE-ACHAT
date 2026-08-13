@@ -1,4 +1,8 @@
-const ROUTE_STOPWORDS = new Set(['SPECIAL', 'REPOS', 'NUIT'])
+// Qualificatifs de service (pas des villes) présents sur les feuilles :
+// « AGADEZ - NIAMEY SPECIAL », « AGADEZ - NIAMEY ENCOUR », « ARLIT - REPOS »…
+const ROUTE_STOPWORDS = new Set([
+  'SPECIAL', 'SPÉCIAL', 'REPOS', 'NUIT', 'ENCOUR', 'ENCOURS', 'ENCOURSE',
+])
 
 export function normalizeCityName(s: string): string {
   return s.trim().toUpperCase().replace(/\s+/g, ' ')

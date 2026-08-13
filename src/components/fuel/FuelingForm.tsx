@@ -2,17 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { DepartureWithFuel, FuelPrice, FuelType } from '@/lib/types'
+import type { Bus, DepartureWithFuel, FuelPrice, FuelType, RouteSegment } from '@/lib/types'
 import { computeAmount, formatFcfa, latestPrice, sumAmounts, todayLocalISO } from '@/lib/fuel/calculations'
+import { computeDistanceKm, parseRoute } from '@/lib/planning/route'
+import { predictFuel, consumptionDeviation } from '@/lib/fuel/prediction'
 import { Button, Input, Select } from '@/components/ui'
-import { CameraIcon, UploadIcon, DropletIcon, AlertIcon, BanknotesIcon, TrashIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, DropletIcon, AlertIcon, BanknotesIcon, TrashIcon, CheckCircleIcon } from '@/components/ui/icons'
 
 interface Props {
   departure: DepartureWithFuel
   onSaved: () => void
+  segments?: RouteSegment[]
+  buses?: Bus[]
+  consumptionRate?: number | null
 }
 
-export function FuelingForm({ departure, onSaved }: Props) {
+export function FuelingForm({ departure, onSaved, segments = [], buses = [], consumptionRate = null }: Props) {
   const supabase = createClient()
   const [type, setType] = useState<FuelType>('diesel')
   const [liters, setLiters] = useState('')
@@ -44,6 +49,22 @@ export function FuelingForm({ departure, onSaved }: Props) {
   const unitPrice = latestPrice(prices, type, today) ?? 0
   const amount = computeAmount(Number(liters) || 0, unitPrice)
   const departureTotal = sumAmounts(departure.fuelings) + amount
+
+  // Prévision de carburant pour ce départ (distance × conso du bus) et
+  // comparaison en direct avec la quantité saisie (détection de surconsommation).
+  const distanceKm = computeDistanceKm(
+    parseRoute(departure.axis),
+    segments.map((s) => ({ cityA: s.city_a, cityB: s.city_b, distanceKm: s.distance_km }))
+  )
+  const prediction = predictFuel({
+    distanceKm,
+    busNumber: departure.bus_number,
+    buses,
+    globalRate: consumptionRate,
+    prices,
+    onDate: today,
+  })
+  const deviation = consumptionDeviation(Number(liters) || 0, prediction.liters)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -150,6 +171,33 @@ export function FuelingForm({ departure, onSaved }: Props) {
         <p className="text-blue-700">Total du départ (avec ce plein)</p>
         <p className="tabular text-lg font-extrabold text-blue-800">{formatFcfa(departureTotal)}</p>
       </div>
+
+      {prediction.liters != null ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+          <p className="flex items-center justify-between text-slate-600">
+            <span>Prévision pour ce trajet{distanceKm != null ? ` (≈ ${distanceKm} km)` : ''}</span>
+            <span className="tabular font-bold text-slate-900">≈ {prediction.liters} L</span>
+          </p>
+          {deviation ? (
+            deviation.status === 'over' ? (
+              <p className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 px-2.5 py-2 text-xs font-semibold text-red-700">
+                <AlertIcon size={15} className="mt-0.5 shrink-0" />
+                Surconsommation : {Math.round(deviation.pct * 100)} % de plus que prévu. Vérifiez la quantité (trajet, fuite ou erreur de saisie).
+              </p>
+            ) : deviation.status === 'under' ? (
+              <p className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-2.5 py-2 text-xs font-semibold text-amber-700">
+                <AlertIcon size={15} className="mt-0.5 shrink-0" />
+                Quantité inhabituellement basse ({Math.round(deviation.pct * 100)} % vs prévu).
+              </p>
+            ) : (
+              <p className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700">
+                <CheckCircleIcon size={15} className="shrink-0" />
+                Conforme à la prévision ({deviation.pct >= 0 ? '+' : ''}{Math.round(deviation.pct * 100)} %).
+              </p>
+            )
+          ) : null}
+        </div>
+      ) : null}
 
       <div>
         <p className="mb-2 text-sm font-semibold text-slate-700">Photos du reçu (optionnel, plusieurs possibles)</p>
