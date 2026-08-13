@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { rotateImage, prepareImage } from '@/lib/planning/preprocess'
+import { rotateImage, prepareImage, prepareImageDataUrl } from '@/lib/planning/preprocess'
 import { parsePlanning, type ParsedPlanning } from '@/lib/planning/parse'
 import { ocrImageToLines } from '@/lib/planning/ocr'
 import { todayLocalISO } from '@/lib/fuel/calculations'
 import { Button, Input } from '@/components/ui'
-import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon, TrashIcon } from '@/components/ui/icons'
+import { CameraIcon, UploadIcon, AlertIcon, CheckCircleIcon, RotateIcon, TrashIcon, SearchIcon } from '@/components/ui/icons'
 import { PreviewTable } from './PreviewTable'
 
 export function ScanForm() {
@@ -19,6 +19,7 @@ export function ScanForm() {
   const [photos, setPhotos] = useState<File[]>([])
   const [preview, setPreview] = useState<ParsedPlanning | null>(null)
   const [busy, setBusy] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -91,6 +92,36 @@ export function ScanForm() {
       setError('Impossible de lire la photo sur cet appareil. Vérifiez votre connexion internet (première utilisation) et réessayez.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Lecture par vision IA (DeepSeek). Les photos sont envoyées au serveur qui
+  // appelle le modèle vision ; on garde la lecture Tesseract comme secours.
+  async function handleAiScan() {
+    setError('')
+    if (photos.length === 0) {
+      setError('Ajoutez au moins une photo du planning.')
+      return
+    }
+    setAiBusy(true)
+    try {
+      const images = await Promise.all(photos.map((p) => prepareImageDataUrl(p)))
+      const res = await fetch('/api/ai/extract-planning', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setError(body.error ?? 'La lecture IA a échoué. Utilisez la lecture classique.')
+        return
+      }
+      setPreview(body as ParsedPlanning)
+      setDone(true)
+    } catch {
+      setError('La lecture IA a échoué. Utilisez la lecture classique.')
+    } finally {
+      setAiBusy(false)
     }
   }
 
@@ -277,10 +308,19 @@ export function ScanForm() {
         </p>
       ) : null}
 
-      <Button onClick={handleScan} disabled={busy} className="w-full">
-        <CameraIcon size={18} />
-        {busy ? 'Lecture de la photo…' : 'Lire le planning'}
-      </Button>
+      <div className="space-y-2">
+        <Button onClick={handleScan} disabled={busy || aiBusy} className="w-full">
+          <CameraIcon size={18} />
+          {busy ? 'Lecture de la photo…' : 'Lire le planning'}
+        </Button>
+        <Button onClick={handleAiScan} disabled={busy || aiBusy} variant="secondary" className="w-full">
+          <SearchIcon size={18} />
+          {aiBusy ? 'Lecture IA…' : 'Lire avec l’IA (optionnel)'}
+        </Button>
+        <p className="text-center text-[11px] text-slate-400">
+          IA : photos envoyées au service vision DeepSeek (coût selon votre clé). En cas d’échec, la lecture classique reste disponible.
+        </p>
+      </div>
     </div>
   )
 }

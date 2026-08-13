@@ -85,6 +85,28 @@ export async function prepareImage(file: File | Blob): Promise<Blob> {
   return canvasToBlob(canvas)
 }
 
+// Préparation d'une image pour l'IA vision : redimensionne (pour borner le
+// nombre de tokens donc le coût) et renvoie une data URL base64 JPEG.
+export async function prepareImageDataUrl(
+  file: File | Blob,
+  opts?: { maxDim?: number; quality?: number }
+): Promise<string> {
+  const maxDim = opts?.maxDim ?? 1600
+  const quality = opts?.quality ?? 0.8
+  const bitmap = await createImageBitmap(file)
+  const longSide = Math.max(bitmap.width, bitmap.height)
+  const scale = Math.min(1, maxDim / longSide)
+  const width = Math.max(1, Math.round(bitmap.width * scale))
+  const height = Math.max(1, Math.round(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  return canvas.toDataURL('image/jpeg', quality)
+}
+
 // Redresse une photo tournée (multiples de 90°), angle fourni par l'OSD de Tesseract
 export async function rotateImage(blob: Blob, degrees: number): Promise<Blob> {
   const angle = ((Math.round(degrees / 90) * 90) % 360 + 360) % 360
