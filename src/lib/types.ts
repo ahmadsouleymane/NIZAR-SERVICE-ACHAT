@@ -51,6 +51,14 @@ export interface Bus {
   created_at: string
 }
 
+export interface Driver {
+  id: string
+  full_name: string
+  phone: string
+  created_by: string | null
+  created_at: string
+}
+
 export interface RouteSegment {
   id: string
   city_a: string

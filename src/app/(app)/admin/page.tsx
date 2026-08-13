@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { Bus, FuelPrice, Profile, RouteSegment } from '@/lib/types'
+import type { Bus, Driver, FuelPrice, Profile, RouteSegment } from '@/lib/types'
 import { parseConsumptionRate } from '@/lib/planning/route'
 import { latestOdometerByBus } from '@/lib/fuel/maintenance'
 import { DropletIcon, UsersIcon, BusIcon } from '@/components/ui/icons'
@@ -7,6 +7,7 @@ import { PricesPanel } from '@/components/admin/PricesPanel'
 import { UsersPanel } from '@/components/admin/UsersPanel'
 import { RoutesPanel } from '@/components/admin/RoutesPanel'
 import { BusesPanel } from '@/components/admin/BusesPanel'
+import { DriversPanel } from '@/components/admin/DriversPanel'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -30,6 +31,8 @@ export default async function AdminPage() {
     supabase.from('buses').select('*').order('bus_number'),
     supabase.from('fuelings').select('bus_number, odometer_km').not('odometer_km', 'is', null),
   ])
+
+  const { data: drivers } = await supabase.from('drivers').select('*').order('full_name')
 
   const latestOdometer = Object.fromEntries(
     latestOdometerByBus((odoRows ?? []) as { bus_number: string; odometer_km: number | null }[])
@@ -67,6 +70,14 @@ export default async function AdminPage() {
           initialSegments={(segments ?? []) as RouteSegment[]}
           initialConsumptionRate={parseConsumptionRate(setting?.value ?? null)}
         />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+          <UsersIcon size={18} className="text-blue-600" />
+          Chauffeurs
+        </h2>
+        <DriversPanel initialDrivers={(drivers ?? []) as Driver[]} />
       </section>
 
       <section className="space-y-3">
