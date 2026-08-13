@@ -15,7 +15,12 @@ async function getWorker(): Promise<Awaited<ReturnType<typeof createWorker>>> {
       async (worker) => {
         // Le tableau entier est traité comme un seul bloc : ordre de lecture
         // gauche→droite, ligne par ligne (idéal pour le template à 7 colonnes).
-        await worker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK })
+        // preserve_interword_spaces=1 : conserve les espaces entre colonnes, ce
+        // qui aide la séparation des tokens (n° bus, heures, téléphones).
+        await worker.setParameters({
+          tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+          preserve_interword_spaces: '1',
+        })
         return worker
       }
     )
