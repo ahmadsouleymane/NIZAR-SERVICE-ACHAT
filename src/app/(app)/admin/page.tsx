@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import type { FuelPrice, Profile, RouteSegment } from '@/lib/types'
+import type { Bus, FuelPrice, Profile, RouteSegment } from '@/lib/types'
 import { parseConsumptionRate } from '@/lib/planning/route'
 import { DropletIcon, UsersIcon, BusIcon } from '@/components/ui/icons'
 import { PricesPanel } from '@/components/admin/PricesPanel'
 import { UsersPanel } from '@/components/admin/UsersPanel'
 import { RoutesPanel } from '@/components/admin/RoutesPanel'
+import { BusesPanel } from '@/components/admin/BusesPanel'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -20,11 +21,12 @@ export default async function AdminPage() {
     return <p className="text-sm text-red-600">Accès réservé à l&apos;administrateur.</p>
   }
 
-  const [{ data: prices }, { data: profiles }, { data: segments }, { data: setting }] = await Promise.all([
+  const [{ data: prices }, { data: profiles }, { data: segments }, { data: setting }, { data: buses }] = await Promise.all([
     supabase.from('fuel_prices').select('*').order('effective_date'),
     supabase.from('profiles').select('*').order('full_name'),
     supabase.from('route_segments').select('*').order('city_a'),
     supabase.from('app_settings').select('*').eq('key', 'consumption_l_per_100km').maybeSingle(),
+    supabase.from('buses').select('*').order('bus_number'),
   ])
 
   return (
@@ -40,6 +42,14 @@ export default async function AdminPage() {
           Prix du carburant
         </h2>
         <PricesPanel initialPrices={(prices ?? []) as FuelPrice[]} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+          <BusIcon size={18} className="text-blue-600" />
+          Bus & consommation
+        </h2>
+        <BusesPanel initialBuses={(buses ?? []) as Bus[]} />
       </section>
 
       <section className="space-y-3">

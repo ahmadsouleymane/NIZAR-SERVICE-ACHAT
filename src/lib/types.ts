@@ -39,6 +39,16 @@ export interface FuelPrice {
   created_at: string
 }
 
+export interface Bus {
+  bus_number: string
+  label: string
+  fuel_type: FuelType
+  consumption_l_per_100km: number | null
+  tank_capacity_l: number | null
+  created_by: string | null
+  created_at: string
+}
+
 export interface RouteSegment {
   id: string
   city_a: string

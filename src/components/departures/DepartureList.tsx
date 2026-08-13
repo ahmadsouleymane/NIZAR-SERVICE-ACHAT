@@ -1,7 +1,8 @@
-import type { DepartureWithFuel, RouteSegment } from '@/lib/types'
+import type { Bus, DepartureWithFuel, FuelPrice, RouteSegment } from '@/lib/types'
 import { originOf } from '@/lib/planning/parse'
-import { parseRoute, computeDistanceKm, predictedLiters } from '@/lib/planning/route'
-import { sumAmounts, formatFcfa } from '@/lib/fuel/calculations'
+import { parseRoute, computeDistanceKm } from '@/lib/planning/route'
+import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
+import { predictFuel } from '@/lib/fuel/prediction'
 import { StatusBadge, type FuelingStatus } from './StatusBadge'
 
 interface Props {
@@ -9,9 +10,12 @@ interface Props {
   onFuel?: (d: DepartureWithFuel) => void
   segments?: RouteSegment[]
   consumptionRate?: number | null
+  buses?: Bus[]
+  prices?: FuelPrice[]
 }
 
-export function DepartureList({ departures, onFuel, segments = [], consumptionRate = null }: Props) {
+export function DepartureList({ departures, onFuel, segments = [], consumptionRate = null, buses = [], prices = [] }: Props) {
+  const today = todayLocalISO()
   const groups = new Map<string, DepartureWithFuel[]>()
   for (const d of departures) {
     const city = originOf(d.axis)
@@ -36,7 +40,14 @@ export function DepartureList({ departures, onFuel, segments = [], consumptionRa
               const paid = d.fuelings.length > 0 && d.fuelings.every((f) => f.paid)
               const status: FuelingStatus = d.fuelings.length === 0 ? 'empty' : paid ? 'paid' : 'fueled'
               const distanceKm = computeDistanceKm(parseRoute(d.axis), segmentInputs)
-              const liters = predictedLiters(distanceKm, consumptionRate)
+              const prediction = predictFuel({
+                distanceKm,
+                busNumber: d.bus_number,
+                buses,
+                globalRate: consumptionRate,
+                prices,
+                onDate: today,
+              })
               return (
                 <button
                   key={d.id}
@@ -54,7 +65,10 @@ export function DepartureList({ departures, onFuel, segments = [], consumptionRa
                     </span>
                     {distanceKm != null ? (
                       <span className="block text-xs text-slate-400">
-                        ≈ {distanceKm} km{liters != null ? ` · ≈ ${liters} L prévus` : ''}
+                        ≈ {distanceKm} km
+                        {prediction.liters != null ? ` · ≈ ${prediction.liters} L` : ''}
+                        {prediction.cost != null ? ` · ≈ ${formatFcfa(prediction.cost)}` : ''}
+                        {' prévus'}
                       </span>
                     ) : null}
                   </span>
