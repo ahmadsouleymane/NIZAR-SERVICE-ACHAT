@@ -37,8 +37,12 @@ export function DepartureList({ departures, onFuel, segments = [], consumptionRa
           <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {rows.map((d) => {
               const total = sumAmounts(d.fuelings)
-              const paid = d.fuelings.length > 0 && d.fuelings.every((f) => f.paid)
-              const status: FuelingStatus = d.fuelings.length === 0 ? 'empty' : paid ? 'paid' : 'fueled'
+              const hasFuel = d.fuelings.length > 0
+              const status: FuelingStatus =
+                !hasFuel ? 'empty'
+                : d.fuelings.every((f) => f.paid) ? 'paid'
+                : d.fuelings.every((f) => f.approved) ? 'approved'
+                : 'fueled'
               const distanceKm = computeDistanceKm(parseRoute(d.axis), segmentInputs)
               const prediction = predictFuel({
                 distanceKm,

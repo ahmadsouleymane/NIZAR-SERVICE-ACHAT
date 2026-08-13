@@ -1,13 +1,15 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { realConsumptionByBus } from '@/lib/fuel/prediction'
 import { Select, Input, EmptyState } from '@/components/ui'
-import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon } from '@/components/ui/icons'
+import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon, CheckCircleIcon } from '@/components/ui/icons'
 
-type Filter = 'all' | 'paid' | 'unpaid'
+type Filter = 'all' | 'to_approve' | 'approved' | 'paid' | 'unpaid'
 
 // La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts")
 export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[] }
@@ -15,12 +17,30 @@ export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[] }
 export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [date, setDate] = useState('')
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const supabase = createClient()
+  const router = useRouter()
+
+  // Étape du workflow : Demandé → Approuvé → Payé.
+  const workflow = (f: Fueling) => (f.paid ? 'paid' : f.approved ? 'approved' : 'to_approve')
+
+  async function approve(id: string) {
+    setBusyId(id)
+    const { error } = await supabase
+      .from('fuelings')
+      .update({ approved: true, approved_at: new Date().toISOString() })
+      .eq('id', id)
+    setBusyId(null)
+    if (!error) router.refresh()
+  }
 
   const filtered = useMemo(() => {
     let list = fuelings
     if (date) list = list.filter((f) => f.date === date)
     if (filter === 'paid') return list.filter((f) => f.paid)
     if (filter === 'unpaid') return list.filter((f) => !f.paid)
+    if (filter === 'approved') return list.filter((f) => f.approved && !f.paid)
+    if (filter === 'to_approve') return list.filter((f) => !f.approved && !f.paid)
     return list
   }, [fuelings, filter, date])
 
@@ -92,6 +112,8 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
           onChange={(e) => setFilter(e.target.value as Filter)}
           options={[
             { value: 'all', label: 'Tous' },
+            { value: 'to_approve', label: 'À approuver' },
+            { value: 'approved', label: 'Approuvés (non payés)' },
             { value: 'paid', label: 'Payés' },
             { value: 'unpaid', label: 'Non payés' },
           ]}
@@ -167,11 +189,28 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                     : null}
                 </div>
               </div>
-              <div className="flex shrink-0 flex-col items-end">
+              <div className="flex shrink-0 flex-col items-end gap-1">
                 <span className="tabular text-sm font-bold text-slate-900">{formatFcfa(f.amount)}</span>
-                <span className={`text-xs font-semibold ${f.paid ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {f.paid ? 'Payé' : 'Non payé'}
-                </span>
+                {(() => {
+                  const step = workflow(f)
+                  const cls =
+                    step === 'paid' ? 'text-emerald-600'
+                    : step === 'approved' ? 'text-blue-600'
+                    : 'text-amber-600'
+                  const label = step === 'paid' ? 'Payé' : step === 'approved' ? 'Approuvé' : 'À approuver'
+                  return <span className={`text-xs font-semibold ${cls}`}>{label}</span>
+                })()}
+                {!f.approved && !f.paid ? (
+                  <button
+                    type="button"
+                    onClick={() => approve(f.id)}
+                    disabled={busyId === f.id}
+                    className="mt-0.5 inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                  >
+                    <CheckCircleIcon size={12} />
+                    {busyId === f.id ? '…' : 'Approuver'}
+                  </button>
+                ) : null}
               </div>
             </div>
           ))}

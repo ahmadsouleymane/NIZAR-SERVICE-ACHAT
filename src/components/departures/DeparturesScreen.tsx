@@ -105,9 +105,10 @@ export function DeparturesScreen() {
           disabled={pendingCount === 0}
           className="col-span-2 lg:col-span-1"
           onClick={async () => {
+            const now = new Date().toISOString()
             const { error } = await supabase
               .from('fuelings')
-              .update({ paid: true, paid_at: new Date().toISOString() })
+              .update({ paid: true, paid_at: now, approved: true, approved_at: now })
               .eq('date', date)
               .eq('paid', false)
             if (!error) load(date)

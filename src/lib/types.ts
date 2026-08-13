@@ -80,6 +80,8 @@ export interface Fueling {
   amount: number
   paid: boolean
   paid_at: string | null
+  approved: boolean
+  approved_at: string | null
   receipt_photo_path: string | null
   receipt_photo_paths: string[]
   odometer_km: number | null

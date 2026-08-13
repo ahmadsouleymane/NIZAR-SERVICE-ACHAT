@@ -23,9 +23,13 @@ describe('StatusBadge', () => {
     render(<StatusBadge status="empty" />)
     expect(screen.getByText('Pas de plein')).toBeInTheDocument()
   })
-  it('affiche « Plein fait » quand non payé', () => {
+  it('affiche « À approuver » quand ni payé ni approuvé', () => {
     render(<StatusBadge status="fueled" />)
-    expect(screen.getByText('Plein fait')).toBeInTheDocument()
+    expect(screen.getByText('À approuver')).toBeInTheDocument()
+  })
+  it('affiche « Approuvé » quand approuvé non payé', () => {
+    render(<StatusBadge status="approved" />)
+    expect(screen.getByText('Approuvé')).toBeInTheDocument()
   })
   it('affiche « Payé » quand payé', () => {
     render(<StatusBadge status="paid" />)
@@ -50,8 +54,8 @@ describe('DepartureList', () => {
       departure({
         id: '1',
         fuelings: [
-          { id: 'f1', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 100, unit_price: 618, amount: 61800, paid: false, paid_at: null, receipt_photo_path: null, receipt_photo_paths: [], odometer_km: null, recorded_by: null, created_at: '' },
-          { id: 'f2', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 50, unit_price: 618, amount: 30900, paid: false, paid_at: null, receipt_photo_path: null, receipt_photo_paths: [], odometer_km: null, recorded_by: null, created_at: '' },
+          { id: 'f1', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 100, unit_price: 618, amount: 61800, paid: false, paid_at: null, approved: false, approved_at: null, receipt_photo_path: null, receipt_photo_paths: [], odometer_km: null, recorded_by: null, created_at: '' },
+          { id: 'f2', date: '2026-08-06', departure_id: 'd1', bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 50, unit_price: 618, amount: 30900, paid: false, paid_at: null, approved: false, approved_at: null, receipt_photo_path: null, receipt_photo_paths: [], odometer_km: null, recorded_by: null, created_at: '' },
         ],
       }),
     ]
