@@ -23,6 +23,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
   const [liters, setLiters] = useState('')
   const [odometer, setOdometer] = useState('')
   const [blNumber, setBlNumber] = useState('')
+  const [blDuplicate, setBlDuplicate] = useState('')
   const [prices, setPrices] = useState<FuelPrice[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -41,6 +42,21 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
 
   function removeReceipt(index: number) {
     setReceiptPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // Avertissement (non bloquant) si ce numéro de BL a déjà été saisi sur un autre plein.
+  async function checkBlDuplicate() {
+    const value = blNumber.trim()
+    setBlDuplicate('')
+    if (!value) return
+    const { data } = await supabase
+      .from('fuelings')
+      .select('bus_number, date')
+      .ilike('bl_number', value)
+      .limit(1)
+    if (data && data.length > 0) {
+      setBlDuplicate(`Ce numéro de BL a déjà été utilisé (${data[0].bus_number}, ${data[0].date}).`)
+    }
   }
 
   useEffect(() => {
@@ -168,13 +184,22 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
         />
       </div>
 
-      <Input
-        id="bl-number"
-        label="Numéro de BL (optionnel)"
-        value={blNumber}
-        onChange={(e) => setBlNumber(e.target.value)}
-        placeholder="ex. BL-00123"
-      />
+      <div>
+        <Input
+          id="bl-number"
+          label="Numéro de BL (optionnel)"
+          value={blNumber}
+          onChange={(e) => { setBlNumber(e.target.value); setBlDuplicate('') }}
+          onBlur={checkBlDuplicate}
+          placeholder="ex. BL-00123"
+        />
+        {blDuplicate ? (
+          <p className="mt-1.5 flex items-start gap-1.5 text-xs font-medium text-amber-700">
+            <AlertIcon size={14} className="mt-0.5 shrink-0" />
+            {blDuplicate}
+          </p>
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-50 p-3 text-sm">

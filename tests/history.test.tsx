@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { PlanningsList } from '@/components/history/PlanningsList'
 import { ReceiptsList } from '@/components/history/ReceiptsList'
 import type { Planning, Fueling } from '@/lib/types'
@@ -9,6 +9,15 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ from: () => ({ update: () => ({ eq: () => ({ eq: () => ({ then: () => ({}) }) }) }) }) }),
 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
+
+const pdfSaveMock = vi.fn()
+class FakeJsPDF {
+  setFontSize = vi.fn()
+  text = vi.fn()
+  save = pdfSaveMock
+}
+vi.mock('jspdf', () => ({ default: FakeJsPDF }))
+vi.mock('jspdf-autotable', () => ({ default: vi.fn() }))
 
 const plannings: Planning[] = [
   { id: 'p1', date: '2026-08-06', source_label: 'Agadez', image_urls: [], created_by: null, created_at: '' },
@@ -31,6 +40,7 @@ describe('PlanningsList', () => {
 })
 
 describe('ReceiptsList', () => {
+  beforeEach(() => pdfSaveMock.mockClear())
   it('affiche les reçus et le grand total', () => {
     render(<ReceiptsList fuelings={fuelings} />)
     expect(screen.getByText('CG 6377')).toBeInTheDocument()
@@ -65,5 +75,17 @@ describe('ReceiptsList', () => {
     expect(text).toContain('AGADEZ')
     expect(text).toContain('NIAMEY')
     vi.unstubAllGlobals()
+  })
+  it('génère un rapport PDF', async () => {
+    render(<ReceiptsList fuelings={fuelings} />)
+    fireEvent.click(screen.getByRole('button', { name: /rapport pdf/i }))
+    await waitFor(() => expect(pdfSaveMock).toHaveBeenCalled())
+    expect(pdfSaveMock.mock.calls[0][0]).toMatch(/^recus-.*\.pdf$/)
+  })
+  it('filtre par provenance/destination', () => {
+    render(<ReceiptsList fuelings={fuelings} />)
+    fireEvent.change(screen.getByLabelText(/provenance.*destination/i), { target: { value: 'Agadez' } })
+    expect(screen.getByText('CG 6377')).toBeInTheDocument()
+    expect(screen.queryByText('BH 8210')).not.toBeInTheDocument()
   })
 })

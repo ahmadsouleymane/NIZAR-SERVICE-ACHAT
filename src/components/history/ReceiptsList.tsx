@@ -25,6 +25,7 @@ function originDestination(axis: string | null | undefined): [string, string] {
 export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [date, setDate] = useState('')
+  const [city, setCity] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const supabase = createClient()
   const router = useRouter()
@@ -45,12 +46,19 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
   const filtered = useMemo(() => {
     let list = fuelings
     if (date) list = list.filter((f) => f.date === date)
+    if (city.trim()) {
+      const needle = city.trim().toUpperCase()
+      list = list.filter((f) => {
+        const [origin, destination] = originDestination(f.axis)
+        return origin.includes(needle) || destination.includes(needle)
+      })
+    }
     if (filter === 'paid') return list.filter((f) => f.paid)
     if (filter === 'unpaid') return list.filter((f) => !f.paid)
     if (filter === 'approved') return list.filter((f) => f.approved && !f.paid)
     if (filter === 'to_approve') return list.filter((f) => !f.approved && !f.paid)
     return list
-  }, [fuelings, filter, date])
+  }, [fuelings, filter, date, city])
 
   const total = sumAmounts(filtered)
   const typeLabel = (t: string) => (t === 'diesel' ? 'Diesel' : 'Essence')
@@ -66,9 +74,9 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
     URL.revokeObjectURL(url)
   }
 
-  function exportCsv() {
-    const header = ['Date', 'N° BL', 'Bus', 'Chauffeur', 'Provenance', 'Destination', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
-    const rows = filtered.map((f) => {
+  const reportHeader = ['Date', 'N° BL', 'Bus', 'Chauffeur', 'Provenance', 'Destination', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
+  function reportRows() {
+    return filtered.map((f) => {
       const [origin, destination] = originDestination(f.axis)
       return [
         f.date,
@@ -84,7 +92,30 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
         f.paid ? 'Payé' : 'Non payé',
       ]
     })
-    downloadCsv([header, ...rows], `recus-${todayLocalISO()}.csv`)
+  }
+
+  function exportCsv() {
+    downloadCsv([reportHeader, ...reportRows()], `recus-${todayLocalISO()}.csv`)
+  }
+
+  async function exportPdf() {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
+    const doc = new jsPDF({ orientation: 'landscape' })
+    doc.setFontSize(14)
+    doc.text('Rapport des reçus de carburant', 14, 15)
+    doc.setFontSize(10)
+    doc.text(`Généré le ${todayLocalISO()}`, 14, 21)
+    autoTable(doc, {
+      startY: 26,
+      head: [reportHeader],
+      body: reportRows(),
+      foot: [['', '', '', '', '', '', '', '', '', formatFcfa(total), '']],
+      styles: { fontSize: 8 },
+    })
+    doc.save(`recus-${todayLocalISO()}.pdf`)
   }
 
   // Synthèse agrégée par bus (nombre de pleins, litres et dépense totale).
@@ -144,6 +175,24 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
             Effacer la date
           </button>
         ) : null}
+        <div className="w-48">
+          <Input
+            id="rec-city"
+            label="Provenance / destination"
+            placeholder="ex. Agadez"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+        </div>
+        {city ? (
+          <button
+            type="button"
+            onClick={() => setCity('')}
+            className="h-11 rounded-xl px-3 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Effacer la ville
+          </button>
+        ) : null}
         <div className="flex flex-1 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-44">
           <BanknotesIcon size={18} className="shrink-0 text-emerald-700" />
           <div>
@@ -171,6 +220,14 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
               <DownloadIcon size={16} />
               Synthèse par bus
             </button>
+            <button
+              type="button"
+              onClick={exportPdf}
+              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <DownloadIcon size={16} />
+              Rapport PDF
+            </button>
           </>
         ) : null}
       </div>
@@ -191,6 +248,10 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                 </div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {f.date} · {f.liters} L
+                  {(() => {
+                    const [origin, destination] = originDestination(f.axis)
+                    return origin && destination ? ` · ${origin} → ${destination}` : null
+                  })()}
                   {f.receipt_photo_urls?.length
                     ? f.receipt_photo_urls.map((url, i) => (
                         <span key={i}>

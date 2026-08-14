@@ -24,12 +24,13 @@ const prices: FuelPrice[] = [
 
 const mockInsert = vi.fn()
 const mockUpload = vi.fn()
+const mockBlLookup = vi.fn(() => Promise.resolve({ data: [] as { bus_number: string; date: string }[] }))
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     from: (table: string) =>
       table === 'fuelings'
-        ? { insert: mockInsert }
+        ? { insert: mockInsert, select: () => ({ ilike: () => ({ limit: mockBlLookup }) }) }
         : { select: () => ({ order: () => Promise.resolve({ data: prices }) }) },
     storage: {
       from: () => ({ upload: mockUpload }),
@@ -41,6 +42,8 @@ describe('FuelingForm', () => {
   beforeEach(() => {
     mockInsert.mockClear()
     mockUpload.mockClear()
+    mockBlLookup.mockClear()
+    mockBlLookup.mockResolvedValue({ data: [] })
   })
 
   it('pré-remplit bus et chauffeur depuis le départ', () => {
@@ -87,6 +90,17 @@ describe('FuelingForm', () => {
     await waitFor(() => expect(mockInsert).toHaveBeenCalled())
     const arg = mockInsert.mock.calls[0][0]
     expect(arg).toMatchObject({ bl_number: 'BL-00123' })
+  })
+
+  it('avertit si le numéro de BL a déjà été utilisé', async () => {
+    mockBlLookup.mockResolvedValue({ data: [{ bus_number: 'BH 8210', date: '2026-08-10' }] })
+    render(<FuelingForm departure={departure} onSaved={() => {}} />)
+    await screen.findByText('618 FCFA')
+    const blInput = screen.getByLabelText(/numéro de bl/i)
+    fireEvent.change(blInput, { target: { value: 'BL-00123' } })
+    fireEvent.blur(blInput)
+    await screen.findByText(/déjà été utilisé/i)
+    expect(screen.getByText(/BH 8210/)).toBeInTheDocument()
   })
 
   it('upload la photo du reçu et attache son chemin au plein enregistré', async () => {
