@@ -77,6 +77,18 @@ describe('FuelingForm', () => {
     })
   })
 
+  it('enregistre le numéro de BL quand il est saisi', async () => {
+    mockInsert.mockResolvedValue({ error: null })
+    render(<FuelingForm departure={departure} onSaved={() => {}} />)
+    await screen.findByText('618 FCFA')
+    fireEvent.change(screen.getByLabelText(/litres/i), { target: { value: '300' } })
+    fireEvent.change(screen.getByLabelText(/numéro de bl/i), { target: { value: 'BL-00123' } })
+    fireEvent.click(screen.getByRole('button', { name: /enregistrer le plein/i }))
+    await waitFor(() => expect(mockInsert).toHaveBeenCalled())
+    const arg = mockInsert.mock.calls[0][0]
+    expect(arg).toMatchObject({ bl_number: 'BL-00123' })
+  })
+
   it('upload la photo du reçu et attache son chemin au plein enregistré', async () => {
     mockInsert.mockResolvedValue({ error: null })
     mockUpload.mockResolvedValue({ error: null })

@@ -3,11 +3,15 @@ import type { Fueling } from '@/lib/types'
 import { ReceiptIcon } from '@/components/ui/icons'
 import { ReceiptsList } from '@/components/history/ReceiptsList'
 
-export type ReceiptWithUrl = Fueling & { receipt_photo_urls: string[] }
+export type ReceiptWithUrl = Fueling & { receipt_photo_urls: string[]; axis: string | null }
 
 export default async function RecusPage() {
   const supabase = await createClient()
-  const { data } = await supabase.from('fuelings').select('*').order('created_at', { ascending: false })
+  // "departures(axis)" fournit l'axe (provenance/destination) du départ lié, pour le rapport.
+  const { data } = await supabase
+    .from('fuelings')
+    .select('*, departures(axis)')
+    .order('created_at', { ascending: false })
 
   // Le bucket "receipts" est privé : on génère une URL signée (1 h) pour chaque
   // photo de reçu (plusieurs possibles), sans exposer la ressource publiquement.
@@ -27,7 +31,8 @@ export default async function RecusPage() {
           })
         )
       ).filter((u): u is string => u !== null)
-      return { ...f, receipt_photo_urls: urls }
+      const { departures, ...rest } = f
+      return { ...rest, receipt_photo_urls: urls, axis: departures?.axis ?? null }
     })
   )
 

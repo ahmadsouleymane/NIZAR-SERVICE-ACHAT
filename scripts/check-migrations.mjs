@@ -14,7 +14,7 @@ for (const t of ['buses', 'drivers']) {
   const { error } = await supabase.from(t).select('*').limit(1)
   console.log(error ? `❌ table ${t} : ${error.message}` : `✅ table ${t}`)
 }
-const cols = [['fuelings','receipt_photo_paths'],['fuelings','odometer_km'],['fuelings','approved'],['buses','service_interval_km']]
+const cols = [['fuelings','receipt_photo_paths'],['fuelings','odometer_km'],['fuelings','approved'],['fuelings','bl_number'],['buses','service_interval_km']]
 for (const [t,c] of cols) {
   const { error } = await supabase.from(t).select(c).limit(1)
   console.log(error ? `❌ ${t}.${c} : ${error.message}` : `✅ ${t}.${c}`)

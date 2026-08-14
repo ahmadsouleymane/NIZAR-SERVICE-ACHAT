@@ -6,13 +6,21 @@ import { createClient } from '@/lib/supabase/client'
 import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { realConsumptionByBus } from '@/lib/fuel/prediction'
+import { parseRoute } from '@/lib/planning/route'
 import { Select, Input, EmptyState } from '@/components/ui'
 import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon, CheckCircleIcon } from '@/components/ui/icons'
 
 type Filter = 'all' | 'to_approve' | 'approved' | 'paid' | 'unpaid'
 
-// La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts")
-export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[] }
+// La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts") et axis (via le départ lié)
+export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[]; axis?: string | null }
+
+// Provenance/destination déduites de l'axe du départ (ex. "AGADEZ - NIAMEY").
+function originDestination(axis: string | null | undefined): [string, string] {
+  const cities = parseRoute(axis ?? '')
+  if (cities.length === 0) return ['', '']
+  return [cities[0], cities[cities.length - 1]]
+}
 
 export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
   const [filter, setFilter] = useState<Filter>('all')
@@ -59,17 +67,23 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
   }
 
   function exportCsv() {
-    const header = ['Date', 'Bus', 'Chauffeur', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
-    const rows = filtered.map((f) => [
-      f.date,
-      f.bus_number,
-      f.driver_name,
-      typeLabel(f.fuel_type),
-      String(f.liters),
-      String(f.unit_price),
-      String(f.amount),
-      f.paid ? 'Payé' : 'Non payé',
-    ])
+    const header = ['Date', 'N° BL', 'Bus', 'Chauffeur', 'Provenance', 'Destination', 'Type', 'Litres', 'Prix/L', 'Montant', 'Statut']
+    const rows = filtered.map((f) => {
+      const [origin, destination] = originDestination(f.axis)
+      return [
+        f.date,
+        f.bl_number ?? '',
+        f.bus_number,
+        f.driver_name,
+        origin,
+        destination,
+        typeLabel(f.fuel_type),
+        String(f.liters),
+        String(f.unit_price),
+        String(f.amount),
+        f.paid ? 'Payé' : 'Non payé',
+      ]
+    })
     downloadCsv([header, ...rows], `recus-${todayLocalISO()}.csv`)
   }
 

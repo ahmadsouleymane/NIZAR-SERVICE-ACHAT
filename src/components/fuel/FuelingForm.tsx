@@ -22,6 +22,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
   const [type, setType] = useState<FuelType>('diesel')
   const [liters, setLiters] = useState('')
   const [odometer, setOdometer] = useState('')
+  const [blNumber, setBlNumber] = useState('')
   const [prices, setPrices] = useState<FuelPrice[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -107,6 +108,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
       receipt_photo_paths: uploadedPaths,
       ...(uploadedPaths.length ? { receipt_photo_path: uploadedPaths[0] } : {}),
       ...(odometer && Number(odometer) > 0 ? { odometer_km: Number(odometer) } : {}),
+      ...(blNumber.trim() ? { bl_number: blNumber.trim() } : {}),
     })
     setBusy(false)
     if (error) {
@@ -165,6 +167,14 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
           onChange={(e) => setOdometer(e.target.value)}
         />
       </div>
+
+      <Input
+        id="bl-number"
+        label="Numéro de BL (optionnel)"
+        value={blNumber}
+        onChange={(e) => setBlNumber(e.target.value)}
+        placeholder="ex. BL-00123"
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-50 p-3 text-sm">
