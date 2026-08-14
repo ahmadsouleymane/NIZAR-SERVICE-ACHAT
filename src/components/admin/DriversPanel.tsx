@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Driver } from '@/lib/types'
-import { Button, Input, Card } from '@/components/ui'
-import { AlertIcon, TrashIcon, PencilIcon } from '@/components/ui/icons'
+import { Button, Input, Card, ConfirmDeleteButton } from '@/components/ui'
+import { AlertIcon, PencilIcon } from '@/components/ui/icons'
 
 interface Props {
   initialDrivers: Driver[]
@@ -106,9 +106,7 @@ export function DriversPanel({ initialDrivers }: Props) {
                   <button type="button" aria-label={`Modifier ${d.full_name}`} onClick={() => handleEdit(d)} className="text-blue-600 hover:text-blue-700">
                     <PencilIcon size={16} />
                   </button>
-                  <button type="button" aria-label={`Supprimer ${d.full_name}`} onClick={() => handleDelete(d.id)} className="text-red-600 hover:text-red-700">
-                    <TrashIcon size={16} />
-                  </button>
+                  <ConfirmDeleteButton label={`Supprimer ${d.full_name}`} onConfirm={() => handleDelete(d.id)} />
                 </span>
               </li>
             ))}

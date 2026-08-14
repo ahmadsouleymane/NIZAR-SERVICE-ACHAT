@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { RouteSegment } from '@/lib/types'
 import { normalizeCityName } from '@/lib/planning/route'
-import { Button, Input, Card } from '@/components/ui'
-import { AlertIcon, TrashIcon, PencilIcon } from '@/components/ui/icons'
+import { Button, Input, Card, ConfirmDeleteButton } from '@/components/ui'
+import { AlertIcon, PencilIcon } from '@/components/ui/icons'
 
 interface Props {
   initialSegments: RouteSegment[]
@@ -170,14 +170,7 @@ export function RoutesPanel({ initialSegments, initialConsumptionRate }: Props) 
                 >
                   <PencilIcon size={16} />
                 </button>
-                <button
-                  type="button"
-                  aria-label="Supprimer"
-                  onClick={() => handleDelete(s.id)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <TrashIcon size={16} />
-                </button>
+                <ConfirmDeleteButton label={`Supprimer ${s.city_a} ↔ ${s.city_b}`} onConfirm={() => handleDelete(s.id)} />
               </span>
             </li>
           ))}

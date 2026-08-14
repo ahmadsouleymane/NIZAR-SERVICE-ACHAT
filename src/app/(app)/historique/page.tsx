@@ -5,7 +5,11 @@ import { PlanningsList } from '@/components/history/PlanningsList'
 
 export default async function HistoriquePage() {
   const supabase = await createClient()
-  const { data } = await supabase.from('plannings').select('*').order('date', { ascending: false })
+  const { data: { user } } = await supabase.auth.getUser()
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase.from('plannings').select('*').order('date', { ascending: false }),
+    supabase.from('profiles').select('role').eq('id', user?.id ?? '').single(),
+  ])
   return (
     <div className="space-y-5">
       <div>
@@ -15,7 +19,7 @@ export default async function HistoriquePage() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">Retrouvez les plannings scannés et leurs photos.</p>
       </div>
-      <PlanningsList plannings={(data ?? []) as Planning[]} />
+      <PlanningsList plannings={(data ?? []) as Planning[]} isAdmin={profile?.role === 'admin'} />
     </div>
   )
 }

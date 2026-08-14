@@ -80,13 +80,29 @@ export interface Fueling {
   amount: number
   paid: boolean
   paid_at: string | null
+  paid_by: string | null
   approved: boolean
   approved_at: string | null
+  approved_by: string | null
+  voided: boolean
+  voided_at: string | null
+  voided_by: string | null
   receipt_photo_path: string | null
   receipt_photo_paths: string[]
   odometer_km: number | null
   bl_number: string | null
   recorded_by: string | null
+  created_at: string
+}
+
+export type FuelingAuditAction = 'created' | 'updated' | 'approved' | 'paid' | 'voided'
+
+export interface FuelingAuditLog {
+  id: string
+  fueling_id: string
+  action: FuelingAuditAction
+  actor: string | null
+  details: string
   created_at: string
 }
 

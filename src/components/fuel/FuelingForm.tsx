@@ -112,6 +112,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
       uploadedPaths.push(path)
     }
 
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase.from('fuelings').insert({
       date: today,
       departure_id: departure.id,
@@ -122,6 +123,7 @@ export function FuelingForm({ departure, onSaved, segments = [], buses = [], con
       unit_price: unitPrice,
       amount,
       receipt_photo_paths: uploadedPaths,
+      recorded_by: user?.id ?? null,
       ...(uploadedPaths.length ? { receipt_photo_path: uploadedPaths[0] } : {}),
       ...(odometer && Number(odometer) > 0 ? { odometer_km: Number(odometer) } : {}),
       ...(blNumber.trim() ? { bl_number: blNumber.trim() } : {}),

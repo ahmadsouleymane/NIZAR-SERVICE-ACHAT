@@ -7,10 +7,12 @@ import type { Fueling } from '@/lib/types'
 import { sumAmounts, formatFcfa, todayLocalISO } from '@/lib/fuel/calculations'
 import { realConsumptionByBus } from '@/lib/fuel/prediction'
 import { parseRoute } from '@/lib/planning/route'
+import { logFuelingAudit } from '@/lib/fuel/audit'
 import { Select, Input, EmptyState } from '@/components/ui'
 import { BanknotesIcon, ReceiptIcon, DropletIcon, DownloadIcon, CheckCircleIcon } from '@/components/ui/icons'
+import { ReceiptDetailSheet } from './ReceiptDetailSheet'
 
-type Filter = 'all' | 'to_approve' | 'approved' | 'paid' | 'unpaid'
+type Filter = 'all' | 'to_approve' | 'approved' | 'paid' | 'unpaid' | 'voided'
 
 // La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts") et axis (via le départ lié)
 export type ReceiptsListFueling = Fueling & { receipt_photo_urls?: string[]; axis?: string | null }
@@ -22,11 +24,12 @@ function originDestination(axis: string | null | undefined): [string, string] {
   return [cities[0], cities[cities.length - 1]]
 }
 
-export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) {
+export function ReceiptsList({ fuelings, isAdmin = false }: { fuelings: ReceiptsListFueling[]; isAdmin?: boolean }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [date, setDate] = useState('')
   const [city, setCity] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<ReceiptsListFueling | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -35,16 +38,18 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
 
   async function approve(id: string) {
     setBusyId(id)
+    const { data: { user } } = await supabase.auth.getUser()
     const { error } = await supabase
       .from('fuelings')
-      .update({ approved: true, approved_at: new Date().toISOString() })
+      .update({ approved: true, approved_at: new Date().toISOString(), approved_by: user?.id ?? null })
       .eq('id', id)
+    if (!error) await logFuelingAudit(supabase, id, 'approved')
     setBusyId(null)
     if (!error) router.refresh()
   }
 
   const filtered = useMemo(() => {
-    let list = fuelings
+    let list = fuelings.filter((f) => (filter === 'voided' ? f.voided : !f.voided))
     if (date) list = list.filter((f) => f.date === date)
     if (city.trim()) {
       const needle = city.trim().toUpperCase()
@@ -150,32 +155,26 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <Select
-          id="statut"
-          label="Statut"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as Filter)}
-          options={[
-            { value: 'all', label: 'Tous' },
-            { value: 'to_approve', label: 'À approuver' },
-            { value: 'approved', label: 'Approuvés (non payés)' },
-            { value: 'paid', label: 'Payés' },
-            { value: 'unpaid', label: 'Non payés' },
-          ]}
-        />
-        <div className="w-40">
+        <div className="w-full sm:w-auto">
+          <Select
+            id="statut"
+            label="Statut"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as Filter)}
+            options={[
+              { value: 'all', label: 'Tous' },
+              { value: 'to_approve', label: 'À approuver' },
+              { value: 'approved', label: 'Approuvés (non payés)' },
+              { value: 'paid', label: 'Payés' },
+              { value: 'unpaid', label: 'Non payés' },
+              { value: 'voided', label: 'Annulés' },
+            ]}
+          />
+        </div>
+        <div className="w-[calc(50%-0.375rem)] sm:w-40">
           <Input id="rec-date" label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
-        {date ? (
-          <button
-            type="button"
-            onClick={() => setDate('')}
-            className="h-11 rounded-xl px-3 text-sm font-medium text-blue-700 hover:bg-blue-50"
-          >
-            Effacer la date
-          </button>
-        ) : null}
-        <div className="w-48">
+        <div className="w-[calc(50%-0.375rem)] sm:w-48">
           <Input
             id="rec-city"
             label="Provenance / destination"
@@ -184,15 +183,18 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
             onChange={(e) => setCity(e.target.value)}
           />
         </div>
-        {city ? (
+        {date || city ? (
           <button
             type="button"
-            onClick={() => setCity('')}
+            onClick={() => { setDate(''); setCity('') }}
             className="h-11 rounded-xl px-3 text-sm font-medium text-blue-700 hover:bg-blue-50"
           >
-            Effacer la ville
+            Effacer les filtres
           </button>
         ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex flex-1 items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 min-w-44">
           <BanknotesIcon size={18} className="shrink-0 text-emerald-700" />
           <div>
@@ -203,11 +205,11 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
           </div>
         </div>
         {filtered.length > 0 ? (
-          <>
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             <button
               type="button"
               onClick={exportCsv}
-              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:flex-none"
             >
               <DownloadIcon size={16} />
               Exporter CSV
@@ -215,7 +217,7 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
             <button
               type="button"
               onClick={exportByBus}
-              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:flex-none"
             >
               <DownloadIcon size={16} />
               Synthèse par bus
@@ -223,12 +225,12 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
             <button
               type="button"
               onClick={exportPdf}
-              className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:flex-none"
             >
               <DownloadIcon size={16} />
               Rapport PDF
             </button>
-          </>
+          </div>
         ) : null}
       </div>
 
@@ -237,7 +239,12 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
       ) : (
         <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
           {filtered.map((f) => (
-            <div key={f.id} data-testid="receipt-row" className="flex items-center justify-between gap-3 px-4 py-3">
+            <div
+              key={f.id}
+              data-testid="receipt-row"
+              onClick={() => setSelected(f)}
+              className={`flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-50 ${f.voided ? 'opacity-50' : ''}`}
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-slate-900">{f.bus_number}</span>
@@ -245,6 +252,9 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                     <DropletIcon size={12} />
                     {typeLabel(f.fuel_type)}
                   </span>
+                  {f.bl_number ? (
+                    <span className="text-[11px] text-slate-400">BL {f.bl_number}</span>
+                  ) : null}
                 </div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {f.date} · {f.liters} L
@@ -256,7 +266,13 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                     ? f.receipt_photo_urls.map((url, i) => (
                         <span key={i}>
                           {' · '}
-                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-blue-600 underline"
+                          >
                             {f.receipt_photo_urls!.length > 1 ? `Reçu ${i + 1}` : 'Voir le reçu'}
                           </a>
                         </span>
@@ -267,6 +283,7 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
               <div className="flex shrink-0 flex-col items-end gap-1">
                 <span className="tabular text-sm font-bold text-slate-900">{formatFcfa(f.amount)}</span>
                 {(() => {
+                  if (f.voided) return <span className="text-xs font-semibold text-red-600">Annulé</span>
                   const step = workflow(f)
                   const cls =
                     step === 'paid' ? 'text-emerald-600'
@@ -275,10 +292,10 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
                   const label = step === 'paid' ? 'Payé' : step === 'approved' ? 'Approuvé' : 'À approuver'
                   return <span className={`text-xs font-semibold ${cls}`}>{label}</span>
                 })()}
-                {!f.approved && !f.paid ? (
+                {!f.approved && !f.paid && !f.voided ? (
                   <button
                     type="button"
-                    onClick={() => approve(f.id)}
+                    onClick={(e) => { e.stopPropagation(); approve(f.id) }}
                     disabled={busyId === f.id}
                     className="mt-0.5 inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
                   >
@@ -291,6 +308,15 @@ export function ReceiptsList({ fuelings }: { fuelings: ReceiptsListFueling[] }) 
           ))}
         </div>
       )}
+
+      {selected ? (
+        <ReceiptDetailSheet
+          fueling={selected}
+          isAdmin={isAdmin}
+          onClose={() => setSelected(null)}
+          onChanged={() => router.refresh()}
+        />
+      ) : null}
     </div>
   )
 }

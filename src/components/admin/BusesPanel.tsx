@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Bus, FuelType } from '@/lib/types'
 import { maintenanceStatus } from '@/lib/fuel/maintenance'
-import { Button, Input, Select, Card } from '@/components/ui'
-import { AlertIcon, TrashIcon, PencilIcon } from '@/components/ui/icons'
+import { Button, Input, Select, Card, ConfirmDeleteButton } from '@/components/ui'
+import { AlertIcon, PencilIcon } from '@/components/ui/icons'
 
 interface Props {
   initialBuses: Bus[]
@@ -217,9 +217,7 @@ export function BusesPanel({ initialBuses, latestOdometer = {} }: Props) {
                   <button type="button" aria-label={`Modifier ${b.bus_number}`} onClick={() => handleEdit(b)} className="text-blue-600 hover:text-blue-700">
                     <PencilIcon size={16} />
                   </button>
-                  <button type="button" aria-label={`Supprimer ${b.bus_number}`} onClick={() => handleDelete(b.bus_number)} className="text-red-600 hover:text-red-700">
-                    <TrashIcon size={16} />
-                  </button>
+                  <ConfirmDeleteButton label={`Supprimer ${b.bus_number}`} onConfirm={() => handleDelete(b.bus_number)} />
                 </span>
               </li>
               )

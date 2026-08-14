@@ -53,10 +53,13 @@ describe('RoutesPanel', () => {
     expect(mockInsert.mock.calls[0][0]).toMatchObject({ city_a: 'LOGA', city_b: 'AGADEZ', distance_km: 850 })
   })
 
-  it('supprime un tronçon', async () => {
+  it('supprime un tronçon après confirmation (deux clics)', async () => {
     mockEq.mockResolvedValue({ error: null })
     render(<RoutesPanel initialSegments={segments} initialConsumptionRate={30} />)
-    fireEvent.click(screen.getByRole('button', { name: /supprimer/i }))
+    const deleteBtn = screen.getByRole('button', { name: /supprimer/i })
+    fireEvent.click(deleteBtn)
+    expect(mockEq).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /confirmer/i }))
     await waitFor(() => expect(mockEq).toHaveBeenCalledWith('id', '1'))
   })
 

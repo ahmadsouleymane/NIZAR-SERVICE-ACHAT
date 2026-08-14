@@ -28,6 +28,7 @@ const mockBlLookup = vi.fn(() => Promise.resolve({ data: [] as { bus_number: str
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
+    auth: { getUser: () => Promise.resolve({ data: { user: { id: 'u1' } } }) },
     from: (table: string) =>
       table === 'fuelings'
         ? { insert: mockInsert, select: () => ({ ilike: () => ({ limit: mockBlLookup }) }) }

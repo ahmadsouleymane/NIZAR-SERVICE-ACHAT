@@ -10,6 +10,7 @@ import { DepartureList } from './DepartureList'
 import { EmptyState, Button } from '@/components/ui'
 import { BanknotesIcon, WalletIcon, CheckCircleIcon, CalendarIcon } from '@/components/ui/icons'
 import { FuelingSheet } from '@/components/fuel/FuelingSheet'
+import { logFuelingAudit } from '@/lib/fuel/audit'
 
 export function DeparturesScreen() {
   const [date, setDate] = useState(todayLocalISO())
@@ -106,12 +107,25 @@ export function DeparturesScreen() {
           className="col-span-2 lg:col-span-1"
           onClick={async () => {
             const now = new Date().toISOString()
+            const { data: { user } } = await supabase.auth.getUser()
+            const pendingIds = fuelings.filter((f) => !f.paid).map((f) => f.id)
             const { error } = await supabase
               .from('fuelings')
-              .update({ paid: true, paid_at: now, approved: true, approved_at: now })
+              .update({
+                paid: true,
+                paid_at: now,
+                paid_by: user?.id ?? null,
+                approved: true,
+                approved_at: now,
+                approved_by: user?.id ?? null,
+              })
               .eq('date', date)
               .eq('paid', false)
-            if (!error) load(date)
+              .eq('voided', false)
+            if (!error) {
+              await Promise.all(pendingIds.map((id) => logFuelingAudit(supabase, id, 'paid')))
+              load(date)
+            }
           }}
         >
           <CheckCircleIcon size={18} />

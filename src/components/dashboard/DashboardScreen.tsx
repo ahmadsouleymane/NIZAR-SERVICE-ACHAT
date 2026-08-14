@@ -28,6 +28,7 @@ export function DashboardScreen() {
       .from('fuelings')
       .select('*')
       .gte('date', since)
+      .eq('voided', false)
       .order('date')
       .then(({ data }) => {
         setFuelings((data ?? []) as Fueling[])

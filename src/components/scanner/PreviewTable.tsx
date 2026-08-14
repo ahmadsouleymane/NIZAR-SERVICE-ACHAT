@@ -2,7 +2,11 @@
 
 import type { ParsedPlanning } from '@/lib/planning/parse'
 import { Button } from '@/components/ui/Button'
-import { TrashIcon } from '@/components/ui/icons'
+import { TrashIcon, PlusIcon } from '@/components/ui/icons'
+
+const emptyDeparture = {
+  axis: '', busNumber: '', departureTime: '', driverName: '', driverPhone: '', backupDriver: '', backupPhone: '',
+}
 
 interface Props {
   planning: ParsedPlanning
@@ -23,6 +27,13 @@ export function PreviewTable({ planning, onChange }: Props) {
   function removeRow(sectionIdx: number, rowIdx: number) {
     const next = structuredClone(planning)
     next.sections[sectionIdx].departures.splice(rowIdx, 1)
+    onChange(next)
+  }
+
+  // Complète manuellement un départ que la lecture IA aurait raté.
+  function addRow(sectionIdx: number) {
+    const next = structuredClone(planning)
+    next.sections[sectionIdx].departures.push({ ...emptyDeparture, axis: next.sections[sectionIdx].originCity })
     onChange(next)
   }
 
@@ -82,6 +93,12 @@ export function PreviewTable({ planning, onChange }: Props) {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5">
+            <Button variant="ghost" type="button" onClick={() => addRow(si)}>
+              <PlusIcon size={16} />
+              Ajouter un départ
+            </Button>
           </div>
         </div>
       ))}

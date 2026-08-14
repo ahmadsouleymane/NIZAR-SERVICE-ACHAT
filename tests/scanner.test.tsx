@@ -36,4 +36,12 @@ describe('PreviewTable', () => {
     fireEvent.click(screen.getByRole('button', { name: /supprimer/i }))
     expect(updated!.sections[0].departures).toHaveLength(0)
   })
+
+  it('permet d’ajouter manuellement un départ raté par l’IA', () => {
+    let updated: ParsedPlanning | null = null
+    render(<PreviewTable planning={planning} onChange={(p) => (updated = p)} />)
+    fireEvent.click(screen.getByRole('button', { name: /ajouter un départ/i }))
+    expect(updated!.sections[0].departures).toHaveLength(2)
+    expect(updated!.sections[0].departures[1]).toMatchObject({ axis: 'AGADEZ', busNumber: '', driverName: '' })
+  })
 })

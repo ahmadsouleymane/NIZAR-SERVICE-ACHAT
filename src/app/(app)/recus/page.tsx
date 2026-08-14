@@ -7,11 +7,12 @@ export type ReceiptWithUrl = Fueling & { receipt_photo_urls: string[]; axis: str
 
 export default async function RecusPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   // "departures(axis)" fournit l'axe (provenance/destination) du départ lié, pour le rapport.
-  const { data } = await supabase
-    .from('fuelings')
-    .select('*, departures(axis)')
-    .order('created_at', { ascending: false })
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase.from('fuelings').select('*, departures(axis)').order('created_at', { ascending: false }),
+    supabase.from('profiles').select('role').eq('id', user?.id ?? '').single(),
+  ])
 
   // Le bucket "receipts" est privé : on génère une URL signée (1 h) pour chaque
   // photo de reçu (plusieurs possibles), sans exposer la ressource publiquement.
@@ -45,7 +46,7 @@ export default async function RecusPage() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">Tous les pleins enregistrés, filtrables par statut.</p>
       </div>
-      <ReceiptsList fuelings={fuelings} />
+      <ReceiptsList fuelings={fuelings} isAdmin={profile?.role === 'admin'} />
     </div>
   )
 }

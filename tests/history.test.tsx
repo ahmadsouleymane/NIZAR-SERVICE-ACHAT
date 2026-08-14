@@ -26,8 +26,8 @@ const plannings: Planning[] = [
 
 // La page /recus fournit receipt_photo_urls (URL signées du bucket privé "receipts") et axis (via le départ lié)
 const fuelings: (Fueling & { receipt_photo_urls?: string[]; axis?: string | null })[] = [
-  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, approved: false, approved_at: null, receipt_photo_path: '2026-08-06/f1.jpg', receipt_photo_paths: ['2026-08-06/f1.jpg'], receipt_photo_urls: ['https://ex.test/signed/receipts/f1.jpg'], odometer_km: null, bl_number: 'BL-00123', recorded_by: null, created_at: '', axis: 'AGADEZ - NIAMEY' },
-  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', approved: true, approved_at: '2026-08-06T18:00:00Z', receipt_photo_path: null, receipt_photo_paths: [], receipt_photo_urls: [], odometer_km: null, bl_number: null, recorded_by: null, created_at: '', axis: null },
+  { id: 'f1', date: '2026-08-06', departure_id: null, bus_number: 'CG 6377', driver_name: 'YOUSSOUF', fuel_type: 'diesel', liters: 300, unit_price: 618, amount: 185400, paid: false, paid_at: null, paid_by: null, approved: false, approved_at: null, approved_by: null, voided: false, voided_at: null, voided_by: null, receipt_photo_path: '2026-08-06/f1.jpg', receipt_photo_paths: ['2026-08-06/f1.jpg'], receipt_photo_urls: ['https://ex.test/signed/receipts/f1.jpg'], odometer_km: null, bl_number: 'BL-00123', recorded_by: null, created_at: '', axis: 'AGADEZ - NIAMEY' },
+  { id: 'f2', date: '2026-08-06', departure_id: null, bus_number: 'BH 8210', driver_name: 'MANSOUR', fuel_type: 'essence', liters: 200, unit_price: 499, amount: 99800, paid: true, paid_at: '2026-08-06T18:00:00Z', paid_by: null, approved: true, approved_at: '2026-08-06T18:00:00Z', approved_by: null, voided: false, voided_at: null, voided_by: null, receipt_photo_path: null, receipt_photo_paths: [], receipt_photo_urls: [], odometer_km: null, bl_number: null, recorded_by: null, created_at: '', axis: null },
 ]
 
 describe('PlanningsList', () => {
@@ -61,7 +61,7 @@ describe('ReceiptsList', () => {
     expect(screen.getAllByRole('link', { name: /voir le reçu/i })).toHaveLength(1)
   })
   it('exporte le CSV avec le numéro de BL, la provenance et la destination', async () => {
-    const createObjectURL = vi.fn((_: Blob) => 'blob:mock')
+    const createObjectURL = vi.fn<(b: Blob) => string>(() => 'blob:mock')
     const revokeObjectURL = vi.fn()
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
     render(<ReceiptsList fuelings={fuelings} />)

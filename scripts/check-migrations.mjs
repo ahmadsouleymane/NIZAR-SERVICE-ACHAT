@@ -14,7 +14,7 @@ for (const t of ['buses', 'drivers']) {
   const { error } = await supabase.from(t).select('*').limit(1)
   console.log(error ? `❌ table ${t} : ${error.message}` : `✅ table ${t}`)
 }
-const cols = [['fuelings','receipt_photo_paths'],['fuelings','odometer_km'],['fuelings','approved'],['fuelings','bl_number'],['buses','service_interval_km']]
+const cols = [['fuelings','receipt_photo_paths'],['fuelings','odometer_km'],['fuelings','approved'],['fuelings','bl_number'],['fuelings','voided'],['fuelings','approved_by'],['fuelings','paid_by'],['buses','service_interval_km']]
 for (const [t,c] of cols) {
   const { error } = await supabase.from(t).select(c).limit(1)
   console.log(error ? `❌ ${t}.${c} : ${error.message}` : `✅ ${t}.${c}`)
@@ -27,3 +27,5 @@ const { data: drivers, error: drvErr } = await supabase.from('drivers').select('
 console.log(drvErr ? `❌ drivers : ${drvErr.message}` : `✅ drivers : ${drivers?.length ?? 0} chauffeurs`)
 const { data: fuels, error: fuelErr } = await supabase.from('fuelings').select('id').limit(1)
 console.log(fuelErr ? `❌ fuelings : ${fuelErr.message}` : `✅ fuelings : accessible`)
+const { error: auditErr } = await supabase.from('fueling_audit_log').select('id').limit(1)
+console.log(auditErr ? `❌ table fueling_audit_log : ${auditErr.message}` : `✅ table fueling_audit_log`)

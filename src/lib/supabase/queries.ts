@@ -16,6 +16,7 @@ export async function fetchFuelingsForDate(supabase: SupabaseClient, date: strin
     .from('fuelings')
     .select('*')
     .eq('date', date)
+    .eq('voided', false)
     .order('created_at')
   return (data ?? []) as Fueling[]
 }
