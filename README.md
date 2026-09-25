@@ -31,3 +31,9 @@ Application web pour le service d'achat d'une entreprise de transport (Niger).
 1. Pousser le dépôt sur GitHub et l'importer dans Vercel.
 2. Renseigner les variables d'environnement.
 3. Le premier utilisateur doit être créé directement dans Supabase (Authentication > Users) — son profil `admin` se règle ensuite en base ou via la console.
+
+---
+
+## 👤 Auteur
+
+**Ahmad Souleymane** — [@ahmadsouleymane](https://github.com/ahmadsouleymane)
